@@ -19,7 +19,7 @@ If it fails to read any packet, the test fails.
 cargo test
 ```
 
-Faster alternative to the above test, doesn't print data to stdout.
+Faster alternative to the above test, doesn't print data to a file.
 
 ## Examples
 
