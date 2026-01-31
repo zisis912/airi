@@ -1,6 +1,6 @@
 use crate::{
-    IdOrX, IdSet, Identifier, Lengthable, Position, PrefixedArray, Serializable, TextComponent,
-    UUID, VarInt, nbt, packet::ProfileProperty,
+    IdOrX, IdSet, Identifier, Lengthable, Position, PrefixedArray, ReadingError, Serializable,
+    TextComponent, UUID, VarInt, WritingError, nbt, packet::ProfileProperty,
 };
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
@@ -28,7 +28,7 @@ pub struct Slot {
 pub type HashedSlot = Option<HashedStack>;
 
 impl Serializable for Slot {
-    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, crate::Error> {
+    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let item_count = VarInt::read_from(buf)?;
         let item = (item_count.0 > 0)
             .then(|| Serializable::read_from(buf))
@@ -36,7 +36,7 @@ impl Serializable for Slot {
 
         Ok(Slot { item_count, item })
     }
-    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), crate::Error> {
+    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         self.item_count.write_to(buf)?;
         if let Some(val) = &self.item {
             val.write_to(buf)?;
@@ -53,7 +53,7 @@ pub struct Item {
 }
 
 impl Serializable for Item {
-    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, crate::Error> {
+    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let item_id = VarInt::read_from(buf)?;
         let components_to_add_len = VarInt::read_from(buf)?;
         let components_to_remove_len = VarInt::read_from(buf)?;
@@ -75,7 +75,7 @@ impl Serializable for Item {
             components_to_remove,
         })
     }
-    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), crate::Error> {
+    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         self.item_id.write_to(buf)?;
         VarInt::from_len(self.components_to_add.len()).write_to(buf)?;
         VarInt::from_len(self.components_to_remove.len()).write_to(buf)?;
@@ -553,14 +553,14 @@ pub struct ColorI32 {
 }
 
 impl Serializable for ColorI32 {
-    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, crate::Error> {
+    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let int = buf.read_u32::<BigEndian>()?;
         let r = (int >> 16) as u8;
         let g = (int >> 8) as u8;
         let b = int as u8;
         Ok(ColorI32 { r, g, b })
     }
-    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), crate::Error> {
+    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let mut int = self.b as u32;
         int |= (self.g as u32) << 8;
         int |= (self.r as u32) << 16;

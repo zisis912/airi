@@ -1,11 +1,16 @@
-use std::io::{self, BufReader, Read};
+use std::{
+    io::{self, BufReader, Read},
+    pin::Pin,
+};
 
 use aes::cipher::KeyIvInit;
 use flate2::bufread::ZlibDecoder;
 use thiserror::Error;
+use tokio::io::AsyncRead;
 
 use crate::{
-    CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, RawPacket, Serializable, VarInt,
+    CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, RawPacket, ReadingError,
+    Serializable, VarInt,
     connection::{Aes128Cfb8Dec, StreamDecryptor},
 };
 
@@ -25,8 +30,12 @@ pub enum PacketDecodeError {
     NotCompressed,
     #[error("the connection has closed")]
     ConnectionClosed,
-    #[error("serialize error: {0}")]
-    SerializeError(#[from] crate::Error),
+}
+
+impl From<ReadingError> for PacketDecodeError {
+    fn from(value: ReadingError) -> Self {
+        Self::FailedDecompression(value.to_string())
+    }
 }
 
 /// Decoder: Client -> Server
@@ -61,7 +70,6 @@ impl<R: Read> NetworkDecoder<R> {
 
     pub fn get_raw_packet(&mut self) -> Result<RawPacket, PacketDecodeError> {
         let packet_len = VarInt::read_from(&mut self.reader)?.0 as u64;
-        // println!("{}", packet_len);
 
         if !(0..=MAX_PACKET_SIZE).contains(&packet_len) {
             return Err(PacketDecodeError::OutOfBounds);

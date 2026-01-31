@@ -45,6 +45,8 @@ fn sample_data(decrypt_dir: Direction) -> Result<(), Box<dyn Error>> {
 
         let packet = packet::packet_by_id(state, decrypt_dir, id, &mut &payload[..]).unwrap();
 
+        println!("{:#?}", packet);
+
         match packet {
             Packet::Handshake(p) => state = p.intent.into(),
             Packet::EncryptionRequest(p) => {

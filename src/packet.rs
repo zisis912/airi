@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::bitset::BitSet;
 use crate::bitset::FixedBitSet;
 use crate::slot::ColorI32;
@@ -9,6 +11,8 @@ use crate::slot::Slot;
 use super::*;
 use macros::Serializable;
 use macros::get_entry;
+
+pub const PROTOCOL_VERSION: i32 = 773;
 
 macro_rules! state_packets {
     (
@@ -25,10 +29,12 @@ macro_rules! state_packets {
             $(
                 pub mod $state {
                 #![allow(unused_imports)]
+
+                use crate::*;
+                use packet::*;
+                use slot::*;
                 $(
-                    use crate::*;
-                    use packet::*;
-                    use slot::*;
+
 
                     #[derive(Serializable, Debug)]
                     $(#[$attr])*
@@ -50,17 +56,29 @@ macro_rules! state_packets {
             $($($($packet($dir::$state::$packet),)*)+)+
         }
 
-        pub fn packet_by_id<R: io::Read>(state: State, dir: Direction, id: i32, buf: &mut R) -> Result<Packet, Error> {
+        use std::io::Write;
+
+        impl Packet {
+            pub fn write<W: Write>(&self, buf: &mut W) -> Result<(),WritingError> {
+                match self {
+                    $($($(Self::$packet(p) => p.write(buf)?,)*)+)+
+                }
+                Ok(())
+            }
+        }
+
+        pub fn packet_by_id<R: io::Read>(state: State, dir: Direction, id: i32, buf: &mut R) -> Result<Packet, ReadingError> {
+            // println!("{:?} {:?} {:?}",state,dir,id);
             Ok(match dir {
                 $(
                     Direction::$dirName => match state {
                         $( State::$stateName => match id {
                             $($dir::$state::$packet::ID => Packet::$packet($dir::$state::$packet::read_from(buf)?),)*
-                            _=>return Err(Error::SerializeError(format!("invalid packet id: {:#04x}",id)))
+                            _=>return Err(ReadingError::Message(format!("invalid packet id: {:#04x}",id)))
                             }
                         )+
                         #[allow(unreachable_patterns)]
-                        _ => return Err(Error::SerializeError("invalid packet state".to_owned()))
+                        _ => return Err(ReadingError::Message(format!("invalid packet state: {:?}",state)))
                     }
                 )+
             })
@@ -83,10 +101,10 @@ pub enum Direction {
     Clientbound,
 }
 
-pub trait PacketType: Serializable {
+pub trait PacketType: Serializable + Debug {
     const ID: i32;
 
-    fn write<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         VarInt(Self::ID).write_to(buf)?;
         self.write_to(buf)?;
         Ok(())
@@ -492,6 +510,7 @@ state_packets! {
                 reason JsonTextComponent
             }
             EncryptionRequest "hello" {
+                /// Always empty when sent by the vanilla server.
                 server_id String
                 public_key LenPrefixedBytes<VarInt>
                 verify_token LenPrefixedBytes<VarInt>
@@ -1234,7 +1253,7 @@ state_packets! {
     }
 }
 
-#[derive(Serializable, Debug)]
+#[derive(Serializable, Debug, Clone, Copy)]
 #[enum_info(u8, 1)]
 pub enum Intent {
     Status,
@@ -1567,7 +1586,7 @@ pub struct Node {
 }
 
 impl Serializable for Node {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         // read buf
         let flags = buf.read_u8()?;
         let children: PrefixedArray<VarInt> = Serializable::read_from(buf)?;
@@ -1598,7 +1617,7 @@ impl Serializable for Node {
             },
             3 => NodeInfo::Root,
             _ => {
-                return Err(Error::SerializeError(format!(
+                return Err(ReadingError::Message(format!(
                     "invalid node type id: {}",
                     node_type
                 )));
@@ -1615,7 +1634,7 @@ impl Serializable for Node {
 
         Ok(result)
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let node_type;
         let has_redirect = self.redirect_node.is_some();
         let mut has_suggestions_type = false;
@@ -1775,7 +1794,7 @@ pub struct BrigadierNumOptions<T: Serializable + Bounded + PartialEq + Copy> {
 }
 
 impl<T: Serializable + Bounded + PartialEq + Copy> Serializable for BrigadierNumOptions<T> {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let flags = buf.read_u8()?;
 
         let min = if flags & 0x01 != 0 {
@@ -1791,7 +1810,7 @@ impl<T: Serializable + Bounded + PartialEq + Copy> Serializable for BrigadierNum
         };
         Ok(BrigadierNumOptions { min, max })
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let mut flags = 0u8;
         let mut min = None;
         let mut max = None;
@@ -2073,7 +2092,7 @@ pub struct ColorARGBI32 {
 }
 
 impl Serializable for ColorARGBI32 {
-    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, crate::Error> {
+    fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let int = buf.read_u32::<BigEndian>()?;
         let a = (int >> 24) as u8;
         let r = (int >> 16) as u8;
@@ -2081,7 +2100,7 @@ impl Serializable for ColorARGBI32 {
         let b = int as u8;
         Ok(ColorARGBI32 { a, r, g, b })
     }
-    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), crate::Error> {
+    fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let mut int = self.b as u32;
         int |= (self.g as u32) << 8;
         int |= (self.r as u32) << 16;
@@ -2125,13 +2144,13 @@ pub struct PackedXZ {
 }
 
 impl Serializable for PackedXZ {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let packed_xz = buf.read_u8()?;
         let x = packed_xz >> 4;
         let z = packed_xz & 15;
         Ok(PackedXZ { x, z })
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let packed_xz = ((self.x & 15) << 4) | (self.z & 15);
         buf.write_u8(packed_xz)?;
         Ok(())
@@ -2182,7 +2201,7 @@ pub enum MapColorPatch {
 }
 
 impl Serializable for MapColorPatch {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let columns = buf.read_u8()?;
         let ret = match columns {
             0 => Self::NoColumns,
@@ -2197,7 +2216,7 @@ impl Serializable for MapColorPatch {
         Ok(ret)
     }
 
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         match self {
             Self::NoColumns => buf.write_u8(0)?,
             Self::HasColumns {
@@ -2342,7 +2361,7 @@ pub struct PlayersActionsData {
 
 // TODO: when std::mem::variant_count() is stabilized make a type for enumset
 impl Serializable for PlayersActionsData {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         // this specific enum has 8 variants
         let actions = FixedBitSet::<8>::read_from(buf)?;
 
@@ -2398,7 +2417,7 @@ impl Serializable for PlayersActionsData {
             players_actions: players,
         })
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         // this specific enum has 8 variants
         let mut actions = FixedBitSet::<8>::new();
 
@@ -2552,7 +2571,7 @@ pub struct DataKept {
 pub struct EntityMetadata(Vec<EntityMetadatum>);
 
 impl Serializable for EntityMetadata {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let mut entity_metadata = Vec::new();
 
         loop {
@@ -2569,7 +2588,7 @@ impl Serializable for EntityMetadata {
 
         Ok(Self(entity_metadata))
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         for entity_metadatum in &self.0 {
             entity_metadatum.write_to(buf)?;
         }
@@ -2644,7 +2663,7 @@ pub struct EntityEquipment {
 }
 
 impl Serializable for EntityEquipment {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let mut equipment: Vec<EquipmentEntry> = Vec::new();
 
         loop {
@@ -2662,7 +2681,7 @@ impl Serializable for EntityEquipment {
                 5 => EquipmentSlot::Helmet,
                 6 => EquipmentSlot::Body,
                 _ => {
-                    return Err(Error::SerializeError(format!(
+                    return Err(ReadingError::Message(format!(
                         "invalid equipment slot: {}",
                         slot
                     )));
@@ -2678,7 +2697,7 @@ impl Serializable for EntityEquipment {
         }
     }
 
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         for equipment_entry in &self.equipment {
             match equipment_entry.slot {
                 EquipmentSlot::MainHand => buf.write_i8(0)?,
@@ -2782,7 +2801,7 @@ pub struct StopSoundData {
 }
 
 impl Serializable for StopSoundData {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let mut source = None;
         let mut sound = None;
 
@@ -2796,7 +2815,7 @@ impl Serializable for StopSoundData {
         Ok(StopSoundData { source, sound })
     }
 
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let mut flags = 0u8;
         if self.source.is_some() {
             flags |= 1
@@ -2847,7 +2866,7 @@ pub struct AdvancementDisplayFlags {
 }
 
 impl Serializable for AdvancementDisplayFlags {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let flags = buf.read_i32::<BigEndian>()?;
         let mut background_texture = None;
         if flags & 0x01 == 1 {
@@ -2859,7 +2878,7 @@ impl Serializable for AdvancementDisplayFlags {
         })
     }
 
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         self.flags.write_to(buf)?;
         if let Some(val) = &self.background_texture {
             val.write_to(buf)?;
@@ -3202,7 +3221,7 @@ impl LpVec3 {
 }
 
 impl Serializable for LpVec3 {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
         let i = buf.read_u8()?;
         if i == 0 {
             return Ok(Self(Vec3 {
@@ -3226,7 +3245,7 @@ impl Serializable for LpVec3 {
             z: (m >> 33) as f64 * n as f64,
         }))
     }
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let d: f64 = Self::clamp_value(self.0.x);
         let e: f64 = Self::clamp_value(self.0.y);
         let f: f64 = Self::clamp_value(self.0.z);

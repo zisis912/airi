@@ -5,7 +5,7 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{Error, Serializable};
+use crate::{Error, ReadingError, Serializable, WritingError};
 
 #[derive(Debug)]
 pub enum Tag {
@@ -154,7 +154,7 @@ impl Tag {
         }
     }
 
-    fn read_type<R: io::Read>(id: u8, buf: &mut R) -> Result<Tag, Error> {
+    fn read_type<R: io::Read>(id: u8, buf: &mut R) -> Result<Tag, ReadingError> {
         // println!("readtype {}", id);
         match id {
             0 => Ok(Tag::End),
@@ -208,18 +208,18 @@ impl Tag {
                 }
                 data
             })),
-            _ => Err(Error::SerializeError("invalid tag".to_owned())),
+            _ => Err(ReadingError::Message(format!("invalid tag"))),
         }
     }
 }
 
 impl Serializable for Tag {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Tag, Error> {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Tag, ReadingError> {
         let ty = buf.read_u8()?;
         Tag::read_type(ty, buf)
     }
 
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), Error> {
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         match *self {
             Tag::End => {}
             Tag::Byte(val) => buf.write_i8(val)?,
@@ -270,13 +270,13 @@ impl Serializable for Tag {
     }
 }
 
-pub fn write_string<W: io::Write>(buf: &mut W, s: &str) -> Result<(), Error> {
+pub fn write_string<W: io::Write>(buf: &mut W, s: &str) -> Result<(), WritingError> {
     let data = s.as_bytes();
     (data.len() as i16).write_to(buf)?;
     buf.write_all(data).map_err(|v| v.into())
 }
 
-pub fn read_string<R: io::Read>(buf: &mut R) -> Result<String, Error> {
+pub fn read_string<R: io::Read>(buf: &mut R) -> Result<String, ReadingError> {
     let len: i16 = buf.read_i16::<BigEndian>()?;
     let mut bytes = Vec::<u8>::new();
     buf.take(len as u64).read_to_end(&mut bytes)?;
