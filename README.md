@@ -4,7 +4,7 @@ Full implementation of the [Minecraft Java Edition network protocol spec](https:
 
 Protocol version: **1.21.10, protocol 773**
 
-## Tests
+## Tests/Examples
 
 ```
 cargo test -- --nocapture > output.txt
@@ -21,7 +21,7 @@ cargo test
 
 Faster alternative to the above test, doesn't print data to a file.
 
-## Examples
+## Basic Usage
 
 Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder` and `AsyncNetworkEncoder`
 
