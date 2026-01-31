@@ -23,6 +23,8 @@ Faster alternative to the above test, doesn't print data to a file.
 
 ## Examples
 
+Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder` and `AsyncNetworkEncoder`
+
 ### Reading Packets
 
 Useful functions:
