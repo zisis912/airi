@@ -33,7 +33,6 @@ fn sample_data(
     // the last char of this string must be removed, it took me 1 hour to find this
     let key = include_str!("sample_data/rsa_key.txt");
 
-    println!("{}{:x}", key.len(), key.chars().nth(0).unwrap() as i32);
     let server_private_key =
         RsaPrivateKey::from_pkcs8_der(&hex::decode(&key[0..key.len() - 1]).unwrap()).unwrap();
 
@@ -47,13 +46,8 @@ fn sample_data(
 
     loop {
         let res = decoder.get_raw_packet();
-        match res {
-            Err(PacketDecodeError::FailedDecompression(ref e)) => {
-                if e == "IO error: failed to fill whole buffer" {
-                    return Ok(());
-                }
-            }
-            _ => {}
+        if let Err(PacketDecodeError::FailedDecompression(ref e)) = res && e == "IO error: failed to fill whole buffer" {
+            return Ok(());
         }
         let RawPacket { id, payload } = res.unwrap();
 
