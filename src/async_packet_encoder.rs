@@ -106,6 +106,14 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
         take_mut::take(&mut self.writer, |encoder| encoder.upgrade(cipher));
     }
 
+    pub fn is_encrypted(&self) -> bool {
+        matches!(self.writer, AsyncEncryptionWriter::Encrypt(_))
+    }
+
+    pub fn has_compression(&self) -> bool {
+        self.compression.is_some()
+    }
+
     /// Appends a Clientbound `ClientPacket` to the internal buffer and applies compression when needed.
     ///
     /// If compression is enabled and the packet size exceeds the threshold, the packet is compressed.

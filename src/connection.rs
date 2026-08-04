@@ -1,4 +1,4 @@
-use aes::cipher::{BlockDecryptMut, BlockEncryptMut, BlockSizeUser, generic_array::GenericArray};
+use aes::cipher::{BlockModeDecrypt, BlockModeEncrypt, BlockSizeUser};
 use std::{
     io::{self, Error, Read, Write},
     pin::Pin,
@@ -40,7 +40,8 @@ impl<R: Read> Read for StreamDecryptor<R> {
         let bytes_read = reader.read(buf)?;
 
         for block in buf[..bytes_read].chunks_mut(Aes128Cfb8Dec::block_size()) {
-            cipher.decrypt_block_mut(block.into());
+            // TODO: unwrap check
+            cipher.decrypt_block(block.try_into().unwrap());
         }
 
         Ok(bytes_read)
@@ -65,7 +66,8 @@ impl<R: AsyncRead + Unpin> AsyncRead for AsyncStreamDecryptor<R> {
         if matches!(internal_poll, Poll::Ready(Ok(_))) {
             // Decrypt the raw data in-place, note that our block size is 1 byte, so this is always safe
             for block in buf.filled_mut()[original_fill..].chunks_mut(Aes128Cfb8Dec::block_size()) {
-                cipher.decrypt_block_mut(block.into());
+                // TODO: unwrap check
+                cipher.decrypt_block(block.try_into().unwrap());
             }
         }
 
@@ -114,8 +116,10 @@ impl<W: Write> Write for StreamEncryptor<W> {
         for block in buf.chunks(Aes128Cfb8Enc::block_size()) {
             let mut out = [0u8];
 
-            let out_block = GenericArray::from_mut_slice(&mut out);
-            cipher.encrypt_block_b2b_mut(block.into(), out_block);
+            // TODO: unwrap check
+            let out_block = (&mut out).try_into().unwrap();
+            // TODO: unwrap check
+            cipher.encrypt_block_b2b(block.try_into().unwrap(), out_block);
 
             let bytes_written = writer.write(&out)?;
             total_written += bytes_written
@@ -151,8 +155,10 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncStreamEncryptor<W> {
                 // This should never panic
                 out[0] = out_to_use;
             } else {
-                let out_block = GenericArray::from_mut_slice(&mut out);
-                cipher.encrypt_block_b2b_mut(block.into(), out_block);
+                // TODO: unwrap check
+                let out_block = (&mut out).try_into().unwrap();
+                // TODO: unwrap check
+                cipher.encrypt_block_b2b(block.try_into().unwrap(), out_block);
             }
 
             let write = Pin::new(&mut ref_self.write);

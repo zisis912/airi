@@ -139,7 +139,7 @@ state_packets! {
             }
             LoginPluginResponse "custom_query_answer" {
                 message_id VarInt
-                data Vec<u8>
+                data UnsizedBytes
             }
             LoginAcknowledged "login_acknowledged" {}
             CookieResponseLogin "cookie_response" {
@@ -165,7 +165,7 @@ state_packets! {
             }
             ServerboundPluginMessageConfiguration "custom_payload" {
                 channel Identifier
-                data Vec<u8>
+                data UnsizedBytes
             }
             AcknowledgeFinishConfiguration "finish_configuration" {}
             ServerboundKeepAliveConfiguration "keep_alive" {
@@ -280,7 +280,7 @@ state_packets! {
             }
             ServerboundPluginMessagePlay "custom_payload" {
                 channel Identifier
-                data Vec<u8>
+                data UnsizedBytes
             }
             DebugSampleSubscription "debug_subscription_request" {
                 subscriptions PrefixedArray<VarInt>
@@ -525,7 +525,7 @@ state_packets! {
             LoginPluginRequest "custom_query" {
                 message_id VarInt
                 channel Identifier
-                data Vec<u8>
+                data UnsizedBytes
             }
             CookieRequestLogin "cookie_request" {
                 key Identifier
@@ -537,7 +537,7 @@ state_packets! {
             }
             ClientboundPluginMessageConfiguration "custom_payload" {
                 channel Identifier
-                data Vec<u8>
+                data UnsizedBytes
             }
             DisconnectConfiguration "disconnect" {
                 reason TextComponent
@@ -699,7 +699,7 @@ state_packets! {
             }
             ClientboundPluginMessagePlay "custom_payload" {
                 channel Identifier
-                data Vec<u8>
+                data UnsizedBytes
             }
             DamageEvent "damage_event" {
                 entity_id VarInt
@@ -729,7 +729,7 @@ state_packets! {
                 sample_type DebugSampleType
             }
             DeleteMessage "delete_chat" {
-                message_id_or_signature IdOrX<Vec<u8>>
+                message_id_or_signature IdOrX<UnsizedBytes>
             }
             DisconnectPlay "disconnect" {
                 reason TextComponent
@@ -898,7 +898,7 @@ state_packets! {
             PingPlay "ping" {
                 id i32
             }
-            PingResponse "pong_response" {
+            PingResponsePlay "pong_response" {
                 payload i64
             }
             PlaceGhostRecipe "place_ghost_recipe" {
@@ -1296,7 +1296,7 @@ pub struct Tag {
     pub entries: PrefixedArray<VarInt>,
 }
 
-#[derive(Serializable, Debug)]
+#[derive(Serializable, Debug, Clone)]
 pub struct KnownPack {
     pub namespace: String,
     pub id: String,
@@ -3172,14 +3172,14 @@ pub enum ResolvableProfileUnpack {
     Complete(GameProfile),
 }
 
-#[derive(Debug, Serializable)]
+#[derive(Debug, Serializable, PartialEq, Eq, Hash, Clone)]
 #[enum_info(bool, 0)]
 pub enum XorY<X: Serializable, Y: Serializable> {
     Y(Y),
     X(X),
 }
 
-#[derive(Debug, Serializable)]
+#[derive(Debug, Serializable, Clone)]
 #[enum_info(VarInt, 0)]
 pub enum WaypointData {
     Empty,
@@ -3190,7 +3190,7 @@ pub enum WaypointData {
 
 // todo: gotta rename this to a normal name, also check if it actually works cause i never tried it
 #[derive(Debug)]
-pub struct LpVec3(Vec3<f64>);
+pub struct LpVec3(pub Vec3<f64>);
 
 impl LpVec3 {
     fn clamp(val: f64, min: f64, max: f64) -> f64 {

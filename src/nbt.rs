@@ -7,7 +7,7 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::{Error, ReadingError, Serializable, WritingError};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Tag {
     End,
     Byte(i8),

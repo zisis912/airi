@@ -3,12 +3,14 @@ use core::fmt;
 use hex::FromHexError;
 use macros::Serializable;
 use std::{
-    fmt::Display,
+    fmt::{Debug, Display},
     io::{self, Read},
     marker::PhantomData,
+    ops::Add,
     string::FromUtf8Error,
 };
 use thiserror::Error;
+use tokio::io::ErrorKind;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 pub mod async_packet_decoder;
@@ -97,7 +99,7 @@ impl Serializable for bool {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct VarInt(pub i32);
 
 const SEGMENT_BITS: u8 = 0x7F;
@@ -105,42 +107,35 @@ const CONTINUE_BIT: u8 = 0x80;
 
 impl Serializable for VarInt {
     fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
+        // Must cast to u32 to prevent infinite loops on negative i32s
         let mut val = self.0 as u32;
 
         while val > 0x7F {
-            buf.write_u8(val as u8 | 0x80)?;
-
+            buf.write_u8((val as u8) | 0x80)?;
             val >>= 7;
         }
 
         buf.write_u8(val as u8)?;
-        return Ok(());
+        Ok(())
     }
 
     fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
-        let mut value = 0u32;
-        let mut position = 0u8;
-
-        loop {
-            let current_byte = buf.read_u8()?;
-            value |= (current_byte as u32 & 0x7F) << position;
-
-            if (current_byte & CONTINUE_BIT) == 0 {
-                break;
-            }
-
-            position += 7;
-
-            if position >= 32 {
-                return Err(ReadingError::Message("VarInt is too big".to_owned()));
+        let mut val = 0;
+        for i in 0..Self::MAX_SIZE {
+            let byte = buf.read_u8()?;
+            val |= (i32::from(byte) & 0x7F) << (i * 7);
+            if byte & 0x80 == 0 {
+                return Ok(VarInt(val));
             }
         }
-
-        Ok(VarInt(value as i32))
+        Err(ReadingError::TooLarge("VarInt".to_string()))
     }
 }
 
 impl VarInt {
+    // in bytes
+    const MAX_SIZE: u8 = 5;
+
     pub fn written_size(&self) -> usize {
         match self.0 {
             0 => 1,
@@ -149,40 +144,36 @@ impl VarInt {
     }
 
     async fn read_async<R: AsyncRead + Unpin>(buf: &mut R) -> Result<VarInt, ReadingError> {
-        let mut value = 0u32;
-        let mut position = 0u8;
-
-        loop {
-            let current_byte = buf.read_u8().await?;
-            value |= (current_byte as u32 & 0x7F) << position;
-
-            if (current_byte & CONTINUE_BIT) == 0 {
-                break;
-            }
-
-            position += 7;
-
-            if position >= 32 {
-                return Err(ReadingError::Message(format!("VarInt is too big")));
+        let mut val = 0;
+        for i in 0..Self::MAX_SIZE {
+            let byte = buf.read_u8().await.map_err(|err| {
+                if i == 0 && matches!(err.kind(), ErrorKind::UnexpectedEof) {
+                    ReadingError::CleanEOF("VarInt".to_string())
+                } else {
+                    ReadingError::Incomplete(err.to_string())
+                }
+            })?;
+            val |= (i32::from(byte) & 0x7F) << (i * 7);
+            if byte & 0x80 == 0 {
+                return Ok(VarInt(val));
             }
         }
-
-        Ok(VarInt(value as i32))
+        Err(ReadingError::TooLarge("VarInt".to_string()))
     }
 
     async fn write_to_async<W: AsyncWrite + Unpin>(&self, buf: &mut W) -> Result<(), WritingError> {
-        let mut value = self.0 as u32;
-        loop {
-            if (value as u8 & !0x7F) == 0 {
-                buf.write_u8(value as u8).await?;
-                return Ok(());
+        let mut val = self.0;
+        for _ in 0..Self::MAX_SIZE {
+            let b: u8 = val as u8 & 0b01111111;
+            val >>= 7;
+            buf.write_u8(if val == 0 { b } else { b | 0b10000000 })
+                .await
+                .map_err(WritingError::IoError)?;
+            if val == 0 {
+                break;
             }
-
-            buf.write_u8((value as u8 & SEGMENT_BITS) | CONTINUE_BIT)
-                .await?;
-
-            value >>= 7;
         }
+        Ok(())
     }
 }
 
@@ -347,7 +338,7 @@ impl<L: Lengthable> From<Vec<u8>> for LenPrefixedBytes<L> {
     }
 }
 
-impl<L: Lengthable> fmt::Debug for LenPrefixedBytes<L> {
+impl<L: Lengthable> Debug for LenPrefixedBytes<L> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LenPrefixedBytes ({} bytes)", self.data.len())
     }
@@ -372,7 +363,7 @@ impl<L: Lengthable> Serializable for LenPrefixedBytes<L> {
     }
 }
 
-#[derive(Debug, Serializable)]
+#[derive(Debug, Serializable, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct UUID(pub u128);
 
 #[derive(Debug)]
@@ -414,7 +405,7 @@ impl Display for UUID {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrefixedArray<V: Serializable> {
     pub data: Vec<V>,
 }
@@ -464,20 +455,7 @@ impl<T: Serializable> Serializable for Option<T> {
     }
 }
 
-type Identifier = String;
-
-impl Serializable for Vec<u8> {
-    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
-        let mut bytes = Vec::new();
-        buf.read_to_end(&mut bytes)?;
-        Ok(bytes)
-    }
-
-    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
-        buf.write_all(self)?;
-        Ok(())
-    }
-}
+pub type Identifier = String;
 
 // pub type JsonTextComponent = serde_json::Value;
 pub type JsonTextComponent = String;
@@ -543,7 +521,7 @@ impl Serializable for f64 {
 }
 
 /// Use `Angle::to_radians()` to use the angle, its raw value is not accessible
-#[derive(Debug, Serializable)]
+#[derive(Debug, Serializable, Clone, Copy, Default)]
 pub struct Angle(i8);
 
 impl Angle {
@@ -601,11 +579,28 @@ impl Serializable for () {
     }
 }
 
-#[derive(Debug, Serializable)]
+#[derive(Debug, Serializable, Clone, Copy, Default)]
 pub struct Vec3<T: Serializable> {
-    x: T,
-    y: T,
-    z: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
+}
+
+impl<T: Serializable + Add<Output = T>> Vec3<T> {
+    pub fn offset(self, offset: Vec3<T>) -> Self {
+        Self {
+            x: self.x + offset.x,
+            y: self.y + offset.y,
+            z: self.z + offset.z,
+        }
+    }
+}
+
+impl<T: Serializable + Add<Output = T>> Add for Vec3<T> {
+    type Output = Vec3<T>;
+    fn add(self, rhs: Self) -> Self::Output {
+        self.offset(rhs)
+    }
 }
 
 #[derive(Debug, Serializable)]
@@ -760,6 +755,27 @@ impl Serializable for u128 {
 
     fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         buf.write_u128::<BigEndian>(*self)?;
+        Ok(())
+    }
+}
+
+pub struct UnsizedBytes(pub Vec<u8>);
+
+impl Debug for UnsizedBytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "UnsizedBytes ({} bytes)", self.0.len())
+    }
+}
+
+impl Serializable for UnsizedBytes {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
+        let mut bytes = Vec::new();
+        buf.read_to_end(&mut bytes)?;
+        Ok(UnsizedBytes(bytes))
+    }
+
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
+        buf.write_all(&self.0)?;
         Ok(())
     }
 }
