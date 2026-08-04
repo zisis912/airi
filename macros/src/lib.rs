@@ -1,16 +1,12 @@
-use std::{fmt::format, sync::LazyLock};
+use std::sync::LazyLock;
 
-use heck::ToUpperCamelCase;
-use proc_macro::Punct;
-use proc_macro2::{Literal, Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use serde_json::Value;
 use syn::{
-    AngleBracketedGenericArguments, Data, DeriveInput, Ident, Lit, LitInt, LitStr, PathArguments,
-    PathSegment, Token, Type, TypePath,
+    Data, DeriveInput, Ident, LitInt, LitStr, Token, Type,
     parse::{Parse, ParseStream, Parser},
-    parse_macro_input, parse_quote,
-    punctuated::Punctuated,
+    parse_macro_input,
 };
 
 const ALPHABET: [&str; 10] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
@@ -94,7 +90,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                         };
                     }
                     syn::Fields::Unnamed(f) => {
-                        for (i, field) in f.unnamed.iter().enumerate() {
+                        for (i, _field) in f.unnamed.iter().enumerate() {
                             let idx = syn::Index::from(i);
 
                             field_reads.push(quote!(Serializable::read_from(buf)?));
@@ -162,7 +158,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
 
                         let mut field_names: Vec<Ident> = Vec::new();
 
-                        for (i, field) in f.unnamed.iter().enumerate() {
+                        for (i, _field) in f.unnamed.iter().enumerate() {
                             // let ident = &field.ident;
                             let field_name = format_ident!("{}", ALPHABET[i]);
                             field_names.push(field_name.clone());
@@ -202,7 +198,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 Ok(())
             }
         }
-        Data::Union(u) => {
+        Data::Union(_u) => {
             panic!("unimplemented")
         }
     };
