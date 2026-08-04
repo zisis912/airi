@@ -58,7 +58,6 @@ encoder.set_encryption(key: &[u8; 16]);
 
 // prepare packet payload
 let mut buf = Vec::new();
-VarInt(Handshake::ID).write_to(&mut buf)?;
 Packet::Handshake(Handshake {
     protocol_version: VarInt(773),
     server_adress: "localhost".to_owned(),
