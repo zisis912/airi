@@ -185,7 +185,7 @@ impl TryFrom<usize> for VarInt {
 
 impl From<i32> for VarInt {
     fn from(value: i32) -> Self {
-        VarInt(value.into())
+        VarInt(value)
     }
 }
 
@@ -320,7 +320,7 @@ pub struct LenPrefixedBytes<L: Lengthable> {
 }
 
 impl<L: Lengthable> LenPrefixedBytes<L> {
-    fn new(data: Vec<u8>) -> Self {
+    pub fn new(data: Vec<u8>) -> Self {
         LenPrefixedBytes {
             data,
             _phantom_l: PhantomData,
@@ -365,30 +365,25 @@ impl<L: Lengthable> Serializable for LenPrefixedBytes<L> {
 #[derive(Debug, Serializable, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct UUID(pub u128);
 
-#[derive(Debug)]
-pub struct UUIDParseError;
-
-impl From<FromHexError> for UUIDParseError {
-    fn from(_value: FromHexError) -> Self {
-        UUIDParseError
-    }
+#[derive(Error,Debug)]
+pub enum UUIDParseError {
+    #[error("invalid UUID size")]
+    InvalidSize,
+    #[error("failed to parse hex uuid")]
+    HexError(#[from] FromHexError),
+    #[error("invalid uuid string size, should be 36")]
+    InvalidStringSize
 }
+
 
 impl std::str::FromStr for UUID {
     type Err = UUIDParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.len() != 36 {
-            return Err(UUIDParseError);
+            return Err(UUIDParseError::InvalidStringSize);
         }
-        let mut parts = hex::decode(&s[..8])?;
-        parts.extend_from_slice(&hex::decode(&s[9..13])?);
-        parts.extend_from_slice(&hex::decode(&s[14..18])?);
-        parts.extend_from_slice(&hex::decode(&s[19..23])?);
-        parts.extend_from_slice(&hex::decode(&s[24..36])?);
-        let mut value = 0u128;
-        for i in 0..16 {
-            value |= (parts[i] as u128) << (120 - i * 8);
-        }
+        let bytes = hex::decode(s.replace('-', ""))?;
+        let value = u128::from_be_bytes(bytes.try_into().map_err(|_|UUIDParseError::InvalidSize)?);
         Ok(UUID(value))
     }
 }
@@ -410,7 +405,7 @@ pub struct PrefixedArray<V: Serializable> {
 }
 
 impl<V: Serializable> PrefixedArray<V> {
-    fn new(data: Vec<V>) -> Self {
+    pub fn new(data: Vec<V>) -> Self {
         PrefixedArray { data }
     }
 }
@@ -524,11 +519,11 @@ impl Serializable for f64 {
 pub struct Angle(i8);
 
 impl Angle {
-    fn from_radians(rad: f32) -> Self {
+    pub fn from_radians(rad: f32) -> Self {
         let val = rad * (256. / 360.);
         Angle(val as i8)
     }
-    fn to_radians(&self) -> f32 {
+    pub fn to_radians(self) -> f32 {
         self.0 as f32 * (360. / 256.)
     }
 }

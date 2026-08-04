@@ -208,7 +208,7 @@ impl Tag {
                 }
                 data
             })),
-            _ => Err(ReadingError::Message(format!("invalid tag"))),
+            n => Err(ReadingError::Message(format!("invalid nbt tag: {}", n))),
         }
     }
 }

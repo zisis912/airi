@@ -117,7 +117,7 @@ impl<W: Write> Write for StreamEncryptor<W> {
             let mut out = [0u8];
 
             // TODO: unwrap check
-            let out_block = (&mut out).try_into().unwrap();
+            let out_block = (&mut out).into();
             // TODO: unwrap check
             cipher.encrypt_block_b2b(block.try_into().unwrap(), out_block);
 
@@ -156,7 +156,7 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncStreamEncryptor<W> {
                 out[0] = out_to_use;
             } else {
                 // TODO: unwrap check
-                let out_block = (&mut out).try_into().unwrap();
+                let out_block = (&mut out).into();
                 // TODO: unwrap check
                 cipher.encrypt_block_b2b(block.try_into().unwrap(), out_block);
             }

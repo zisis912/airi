@@ -106,7 +106,7 @@ impl<W: Write> NetworkEncoder<W> {
                 let mut compressed_buf: Vec<u8> = Vec::new();
                 let mut compressor = ZlibEncoder::new(
                     &mut compressed_buf,
-                    Compression::new(compression_level as u32),
+                    Compression::new(compression_level),
                 );
 
                 compressor
@@ -189,7 +189,7 @@ impl<W: Write> NetworkEncoder<W> {
                 .write_to(&mut self.writer)
                 .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
             self.writer
-                .write_all(&packet_data)
+                .write_all(packet_data)
                 .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
         }
 

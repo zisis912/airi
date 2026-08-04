@@ -90,7 +90,7 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
 
         Ok(RawPacket {
             id: packet_id,
-            payload: payload.into(),
+            payload,
         })
     }
 }

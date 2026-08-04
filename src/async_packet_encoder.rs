@@ -174,7 +174,7 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
                 );
 
                 compressor
-                    .write_all(&packet_data)
+                    .write_all(packet_data)
                     .await
                     .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
                 compressor
@@ -239,7 +239,7 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
                     .await
                     .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
                 self.writer
-                    .write_all(&packet_data)
+                    .write_all(packet_data)
                     .await
                     .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
             }
@@ -260,7 +260,7 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
                 .await
                 .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
             self.writer
-                .write_all(&packet_data)
+                .write_all(packet_data)
                 .await
                 .map_err(|err| PacketEncodeError::Message(err.to_string()))?;
         }

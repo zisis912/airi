@@ -1,12 +1,14 @@
 // UNFINISHED, when I use serde for nbt I will finish this
 
+#![allow(dead_code)]
+
 use crate::{Identifier, UUID, nbt, packet::ColorARGBI32};
 
 #[derive(Debug)]
-struct TextComponent(pub TextComponentBase);
+pub struct TextComponent(pub TextComponentBase);
 
 #[derive(Debug)]
-struct TextComponentBase {
+pub struct TextComponentBase {
     pub content: TextContent,
 
     pub style: Style,
@@ -47,7 +49,7 @@ pub struct Style {
 }
 
 #[derive(Debug)]
-enum TextContent {
+pub enum TextContent {
     Text(String),
     TranslatedText(TranslatedTextInfo),
     ScoreboardValue {
@@ -148,7 +150,7 @@ pub enum ClickEvent {
 }
 
 #[derive(Debug)]
-enum DialogType {
+pub enum DialogType {
     Identifier(String),
     Custom(Box<Dialog>),
 }

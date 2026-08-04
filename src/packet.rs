@@ -3204,7 +3204,7 @@ impl LpVec3 {
     }
 
     fn has_fast_marker_bit(max_directional_velocity: u32) -> bool {
-        return (max_directional_velocity & 4) == 4;
+        (max_directional_velocity & 4) == 4
     }
 
     fn clamp_value(value: f64) -> f64 {

@@ -5,7 +5,7 @@ use quote::{format_ident, quote};
 use serde_json::Value;
 use syn::{
     Data, DeriveInput, Ident, LitInt, LitStr, Token, Type,
-    parse::{Parse, ParseStream, Parser},
+    parse::{Parse, ParseStream},
     parse_macro_input,
 };
 
@@ -15,8 +15,8 @@ const ALPHABET: [&str; 10] = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];
 pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    let mut read_from = TokenStream::new();
-    let mut write_to = TokenStream::new();
+    let read_from: TokenStream;
+    let write_to: TokenStream;
 
     match input.data {
         Data::Struct(s) => {
@@ -45,7 +45,6 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                                         .next()
                                         .unwrap()
                                         .ident
-                                        .to_string()
                                         != "bool"
                                     {
                                         panic!("bitfield only works with bool")
@@ -101,7 +100,11 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                             Ok(Self( #(#field_reads),* ))
                         };
                     }
-                    syn::Fields::Unit => {}
+                    syn::Fields::Unit => {
+                        read_from = quote! {
+                            Ok(Self)
+                        }
+                    }
                 };
 
                 write_to = quote! {
@@ -123,12 +126,11 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
 
             let EnumInfo { ty, start_idx } = enum_info_attr.parse_args().unwrap();
 
-            let mut idx = start_idx as usize;
-
             let mut num_to_variant: Vec<TokenStream> = Vec::new();
             let mut variant_to_num: Vec<TokenStream> = Vec::new();
 
-            for variant in e.variants {
+            //pretty much enumerate but with starting index
+            for (idx, variant) in (start_idx as usize..).zip(e.variants) {
                 let name = &variant.ident;
                 match &variant.fields {
                     syn::Fields::Named(f) => {
@@ -177,11 +179,9 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                     }
                     syn::Fields::Unit => {
                         num_to_variant.push(quote!(#idx => Self::#name));
-                        variant_to_num
-                            .push(quote!(Self::#name => #ty::from_len(#idx).write_to(buf)?));
+                        variant_to_num.push(quote!(Self::#name => #ty::from_len(#idx).write_to(buf)?));
                     }
                 };
-                idx += 1;
             }
 
             read_from = quote! {
@@ -199,7 +199,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
             }
         }
         Data::Union(_u) => {
-            panic!("unimplemented")
+            unimplemented!()
         }
     };
     let name = input.ident;

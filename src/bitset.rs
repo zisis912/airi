@@ -34,13 +34,13 @@ pub struct FixedBitSet<const L: usize> {
 
 impl<const L: usize> Serializable for FixedBitSet<L> {
     fn read_from<R: std::io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
-        let size = (L + 7) / 8; // integer division rounding up
+        let size = L.div_ceil(8); // integer division rounding up
         let mut data = Vec::with_capacity(size);
         buf.take(size as u64).read_to_end(&mut data)?;
         Ok(FixedBitSet { data })
     }
     fn write_to<W: std::io::Write>(&self, buf: &mut W) -> Result<(), crate::WritingError> {
-        let byte_size = (L + 7) / 8;
+        let byte_size = L.div_ceil(8);
         if self.data.len() != byte_size {
             return Err(WritingError::Message(format!(
                 "wrong fixed bitset<{}> data length: {} bytes, should be {}",
@@ -51,6 +51,12 @@ impl<const L: usize> Serializable for FixedBitSet<L> {
         }
         buf.write_all(&self.data)?;
         Ok(())
+    }
+}
+
+impl<const L: usize> Default for FixedBitSet<L> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
