@@ -7,19 +7,18 @@ Protocol version: **1.21.10, protocol 773**
 ## Tests/Examples
 
 ```
-cargo test -- --nocapture > output.txt
-```
-
-The `tests/test.rs` file also serves as a usage example file.  
-For rigid testing, I'm using captured TCP traffic between a real Minecraft Client and Server (`S2C.bin`, `C2S.bin`).  
-The test reads through all of the data, printing the deserialized packets in a file.  
-If it fails to read any packet, the test fails.
-
-```
 cargo test
 ```
 
-Faster alternative to the above test, doesn't print data to a file.
+The `tests/test.rs` file also serves as a mini usage example file.  
+For rigid testing, I'm using captured TCP traffic between a real Minecraft Client and Server (`S2C.bin`, `C2S.bin`).  
+The test reads through all of the data, parsing every packet in real time.
+If it fails to read any packet, the test fails.
+
+To locate bugs, you can use the `--nocapture` cargo flag to print the test logs to your terminal:
+```
+cargo test -- --nocapture | less
+```
 
 ## Basic Usage
 
@@ -30,11 +29,11 @@ Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder
 Useful functions:
 
 ```rust
-// (creates unencrypted reader)
+// creates unencrypted reader
 let decoder = NetworkDecoder::new(R: Read);
-// (enables Zlib decompression with threshold n)
-decoder.set_compression(n: usize);
-// (enables AES256-Cfb8 decryption)
+// enables Zlib decompression with threshold 256
+decoder.set_compression(256);
+// enables AES256-Cfb8 decryption
 decoder.set_encryption(key: &[u8; 16]);
 // reads 1 full raw packet from the reader
 let RawPacket { id, payload } = decoder.get_raw_packet()?;
@@ -46,14 +45,14 @@ let packet = packet_by_id(State::Play, Direction::Clientbound, id, &mut &payload
 
 ### Writing Packets
 
-#### Useful functions:
+Useful functions:
 
 ```rust
-// (creates unencrypted writer)
+// creates unencrypted writer
 let decoder = NetworkEncoder::new(W: Write);
-// (enables Zlib compression with threshold n)
-encoder.set_compression(n: usize);
-// (enables AES256-Cfb8 encryption)
+// enables Zlib compression on the writer
+encoder.set_compression(256);
+// enables AES256-Cfb8 encryption
 encoder.set_encryption(key: &[u8; 16]);
 
 // prepare packet payload
