@@ -1,13 +1,13 @@
 use std::io::{self, Write};
 
 use aes::cipher::KeyIvInit;
-use flate2::{write::ZlibEncoder, Compression};
+use flate2::{Compression, write::ZlibEncoder};
 use thiserror::Error;
 
 use crate::{
+    CompressionLevel, CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, Serializable,
+    VarInt,
     connection::{Aes128Cfb8Enc, StreamEncryptor},
-    CompressionLevel, CompressionThreshold, Serializable, VarInt, MAX_PACKET_DATA_SIZE,
-    MAX_PACKET_SIZE,
 };
 
 /// Errors that can occur during packet encoding.

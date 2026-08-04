@@ -2,21 +2,16 @@ use std::{error::Error, fs::File};
 
 use mc_rust_protocol::{
     RawPacket,
-    packet::{
-        self, Direction, Packet, State,
-    },
+    packet::{self, Direction, Packet, State},
     packet_decoder::{NetworkDecoder, PacketDecodeError},
 };
-use rsa::{
-    Pkcs1v15Encrypt, RsaPrivateKey,
-    pkcs8::DecodePrivateKey,
-};
+use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, pkcs8::DecodePrivateKey};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 enum TestError {
     #[error("couldnt obtain aes key from c2s EncryptionResponse packet")]
-    AesKeyMissing
+    AesKeyMissing,
 }
 
 #[test]
@@ -24,20 +19,23 @@ fn testing() {
     // first decrypt aes key as the server, then use it in the client
     let mut aes_key = None;
 
-    let _= sample_data(Direction::Serverbound, &mut aes_key);
-    let _= sample_data(Direction::Clientbound, &mut aes_key);
+    let _ = sample_data(Direction::Serverbound, &mut aes_key);
+    let _ = sample_data(Direction::Clientbound, &mut aes_key);
 }
 
-fn sample_data(decrypt_dir: Direction, aes_key_g: &mut Option<[u8;16]>) -> Result<(), Box<dyn Error>> {
+fn sample_data(
+    decrypt_dir: Direction,
+    aes_key_g: &mut Option<[u8; 16]>,
+) -> Result<(), Box<dyn Error>> {
     let c2s = File::open("tests/sample_data/C2S.bin").unwrap();
     let s2c = File::open("tests/sample_data/S2C.bin").unwrap();
 
-
     // the last char of this string must be removed, it took me 1 hour to find this
-    let key =include_str!("sample_data/rsa_key.txt");
+    let key = include_str!("sample_data/rsa_key.txt");
 
-    println!("{}{:x}",key.len(),key.chars().nth(0).unwrap()as i32);
-    let server_private_key = RsaPrivateKey::from_pkcs8_der(&hex::decode(&key[0..key.len()-1]).unwrap()).unwrap();
+    println!("{}{:x}", key.len(), key.chars().nth(0).unwrap() as i32);
+    let server_private_key =
+        RsaPrivateKey::from_pkcs8_der(&hex::decode(&key[0..key.len() - 1]).unwrap()).unwrap();
 
     let (decoder, mut state) = match decrypt_dir {
         Direction::Clientbound => (&mut NetworkDecoder::new(&s2c), State::Login),
@@ -48,14 +46,14 @@ fn sample_data(decrypt_dir: Direction, aes_key_g: &mut Option<[u8;16]>) -> Resul
     println!("setting state to login");
 
     loop {
-        let res =decoder.get_raw_packet();
+        let res = decoder.get_raw_packet();
         match res {
             Err(PacketDecodeError::FailedDecompression(ref e)) => {
                 if e == "IO error: failed to fill whole buffer" {
                     return Ok(());
                 }
-            },
-            _=>{}
+            }
+            _ => {}
         }
         let RawPacket { id, payload } = res.unwrap();
 
@@ -78,7 +76,9 @@ fn sample_data(decrypt_dir: Direction, aes_key_g: &mut Option<[u8;16]>) -> Resul
             }
             Packet::EncryptionResponse(p) => {
                 let aes_key: [u8; 16] = server_private_key
-                    .decrypt(Pkcs1v15Encrypt, &p.shared_secret.data).unwrap()[0..16].try_into()?;
+                    .decrypt(Pkcs1v15Encrypt, &p.shared_secret.data)
+                    .unwrap()[0..16]
+                    .try_into()?;
                 println!("acquired AES key: {:#?}", hex::encode(aes_key));
                 *aes_key_g = Some(aes_key);
                 decoder.set_encryption(&aes_key);
