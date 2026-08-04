@@ -5,7 +5,7 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{Error, ReadingError, Serializable, WritingError};
+use crate::{ReadingError, Serializable, WritingError};
 
 #[derive(Debug, Clone)]
 pub enum Tag {

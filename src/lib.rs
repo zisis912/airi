@@ -1,5 +1,4 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use core::fmt;
 use hex::FromHexError;
 use macros::Serializable;
 use std::{
@@ -370,7 +369,7 @@ pub struct UUID(pub u128);
 pub struct UUIDParseError;
 
 impl From<FromHexError> for UUIDParseError {
-    fn from(value: FromHexError) -> Self {
+    fn from(_value: FromHexError) -> Self {
         UUIDParseError
     }
 }

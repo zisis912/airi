@@ -1,12 +1,8 @@
-use std::{
-    io::{self, BufReader, Read},
-    pin::Pin,
-};
+use std::io::{self, BufReader, Read};
 
 use aes::cipher::KeyIvInit;
 use flate2::bufread::ZlibDecoder;
 use thiserror::Error;
-use tokio::io::AsyncRead;
 
 use crate::{
     CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, RawPacket, ReadingError,

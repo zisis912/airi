@@ -2,7 +2,7 @@ use std::io::Read;
 
 use super::Serializable;
 
-use crate::{Error, PrefixedArray, ReadingError, WritingError};
+use crate::{PrefixedArray, ReadingError, WritingError};
 
 #[derive(Debug, Serializable)]
 pub struct BitSet {

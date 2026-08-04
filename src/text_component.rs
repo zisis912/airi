@@ -1,8 +1,7 @@
 // UNFINISHED, when I use serde for nbt I will finish this
 
-use std::io;
 
-use crate::{Identifier, ReadingError, Serializable, UUID, nbt, packet::ColorARGBI32};
+use crate::{Identifier, UUID, nbt, packet::ColorARGBI32};
 
 #[derive(Debug)]
 struct TextComponent(pub TextComponentBase);

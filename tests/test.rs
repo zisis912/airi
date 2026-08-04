@@ -1,20 +1,17 @@
-use std::{error::Error, fs::File, io};
+use std::error::Error;
 
 use mc_rust_protocol::{
-    RawPacket, UUID, VarInt,
+    RawPacket,
     packet::{
-        self, Direction, Intent, Packet, PacketType, State, c2s::handshake::Handshake,
-        s2c::play::SetPlayerInventorySlot,
+        self, Direction, Packet, State,
     },
     packet_decoder::NetworkDecoder,
-    slot::{Item, Slot},
 };
 use rsa::{
-    Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
-    pkcs8::{DecodePrivateKey, DecodePublicKey},
+    Pkcs1v15Encrypt, RsaPrivateKey,
+    pkcs8::DecodePrivateKey,
 };
 
-use mc_rust_protocol::Serializable;
 
 #[test]
 fn testing() {
@@ -51,7 +48,7 @@ fn sample_data(decrypt_dir: Direction) -> Result<(), Box<dyn Error>> {
 
         match packet {
             Packet::Handshake(p) => state = p.intent.into(),
-            Packet::EncryptionRequest(p) => {
+            Packet::EncryptionRequest(_p) => {
                 // server_public_key =
                 //     Some(RsaPublicKey::from_public_key_der(&p.public_key.data)?);
                 let aes_key = hex::decode("7532710be168544415a69d2a122b4230")
@@ -75,19 +72,19 @@ fn sample_data(decrypt_dir: Direction) -> Result<(), Box<dyn Error>> {
                 println!("acquired compression value: {:?}", p.theshold.0);
                 decoder.set_compression(p.theshold.0.try_into().unwrap());
             }
-            Packet::LoginSuccess(p) => {
+            Packet::LoginSuccess(_p) => {
                 state = State::Configuration;
                 println!("set state to config");
             }
-            Packet::LoginAcknowledged(p) => {
+            Packet::LoginAcknowledged(_p) => {
                 state = State::Configuration;
                 println!("set state to config");
             }
-            Packet::FinishConfiguration(p) => {
+            Packet::FinishConfiguration(_p) => {
                 state = State::Play;
                 println!("set state to play");
             }
-            Packet::AcknowledgeFinishConfiguration(p) => {
+            Packet::AcknowledgeFinishConfiguration(_p) => {
                 state = State::Play;
                 println!("set state to play");
             }
