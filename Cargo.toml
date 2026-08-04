@@ -2,9 +2,15 @@
 name = "mc-rust-protocol"
 version = "0.1.0"
 edition = "2024"
+license = "GPL-3.0"
+repository = "https://github.com/zisis912/mc-rust-protocol"
+description = "Full implementation of the Minecraft Network Protocol Spec"
+readme = "README.md"
+keywords = ["minecraft","protocol","mc"]
+categories = ["asynchronous","parsing"]
 
 [dependencies]
-macros = { path = "macros" }
+macros = {version="0.1.0", path = "macros" }
 byteorder = "1.5.0"
 serde_json = "1.0.151"
 hex = "0.4.3"
