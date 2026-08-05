@@ -2,20 +2,32 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+    steps:
+      - uses: actions/checkout@v7
+      - run: rustup update stable && rustup default stable
+      - run: rustup component add rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
   build:
     name: Rust project - latest
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - run: rustup update stable && rustup default stable
     - name: Build
       run: cargo build --verbose
@@ -29,7 +41,7 @@ jobs:
     env:
       CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: allow
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup update stable && rustup default stable
       - run: cargo update --verbose
       - run: cargo build --verbose
@@ -40,7 +52,7 @@ jobs:
     env:
       CARGO_BUILD_WARNINGS: deny
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup update stable && rustup default stable
       - run: rustup component add clippy
       - run: cargo clippy --all-targets --all-features --keep-going
