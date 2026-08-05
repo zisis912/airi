@@ -15,11 +15,6 @@ For rigid testing, I'm using captured TCP traffic between a real Minecraft Clien
 The test reads through all of the data, parsing every packet in real time.
 If it fails to read any packet, the test fails.
 
-To locate bugs, you can use the `--nocapture` cargo flag to print the test logs to your terminal:
-```
-cargo test -- --nocapture | less
-```
-
 ## Basic Usage
 
 Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder` and `AsyncNetworkEncoder`

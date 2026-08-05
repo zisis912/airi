@@ -967,6 +967,7 @@ state_packets! {
             }
             RecipeBookSettings "recipe_book_settings" {
                 crafting_recipe_book_open bool
+                crafting_recipe_filter_active bool
                 smelting_recipe_filter_active bool
                 smelting_recipe_book_open bool
                 blast_furnace_recipe_filter_active bool
@@ -1058,7 +1059,7 @@ state_packets! {
                 carried_item Slot
             }
             SetDefaultSpawnPosition "set_default_spawn_position" {
-                dimension_name VarInt
+                dimension_name Identifier
                 location Position
                 yaw f32
                 pitch f32
@@ -2668,25 +2669,8 @@ impl Serializable for EntityEquipment {
 
         loop {
             let slot = u8::read_from(buf)?;
-            if slot & 0x80 == 0 {
-                return Ok(EntityEquipment { equipment });
-            }
 
-            let equipment_slot = match slot {
-                0 => EquipmentSlot::MainHand,
-                1 => EquipmentSlot::Offhand,
-                2 => EquipmentSlot::Boots,
-                3 => EquipmentSlot::Leggings,
-                4 => EquipmentSlot::Chestplate,
-                5 => EquipmentSlot::Helmet,
-                6 => EquipmentSlot::Body,
-                _ => {
-                    return Err(ReadingError::Message(format!(
-                        "invalid equipment slot: {}",
-                        slot
-                    )));
-                }
-            };
+            let equipment_slot = EquipmentSlot::read_from(&mut &[slot][..])?;
 
             let item = Slot::read_from(buf)?;
 
@@ -2694,24 +2678,24 @@ impl Serializable for EntityEquipment {
                 slot: equipment_slot,
                 item,
             });
+
+            if slot & 0x80 == 0 {
+                return Ok(EntityEquipment { equipment });
+            }
         }
     }
 
     fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
-        for equipment_entry in &self.equipment {
-            match equipment_entry.slot {
-                EquipmentSlot::MainHand => buf.write_i8(0)?,
-                EquipmentSlot::Offhand => buf.write_i8(1)?,
-                EquipmentSlot::Boots => buf.write_i8(2)?,
-                EquipmentSlot::Leggings => buf.write_i8(3)?,
-                EquipmentSlot::Chestplate => buf.write_i8(4)?,
-                EquipmentSlot::Helmet => buf.write_i8(5)?,
-                EquipmentSlot::Body => buf.write_i8(6)?,
+        let mut iter =self.equipment.iter().peekable();
+        while let Some(equipment_entry) = iter.next() {
+            let mut byte = vec![0u8;1];
+            equipment_entry.slot.write_to(&mut byte)?;
+            if iter.peek().is_some() {
+                byte[0] |= 0x80
             }
-
+            buf.write(&byte)?;
             equipment_entry.item.write_to(buf)?;
         }
-        buf.write_u8(0x80)?;
         Ok(())
     }
 }
@@ -2722,7 +2706,8 @@ pub struct EquipmentEntry {
     pub item: Slot,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Serializable)]
+#[enum_info(i8,0)]
 pub enum EquipmentSlot {
     MainHand,
     Offhand,
@@ -2731,6 +2716,7 @@ pub enum EquipmentSlot {
     Chestplate,
     Helmet,
     Body,
+    Saddle,
 }
 
 #[derive(Debug, Serializable)]

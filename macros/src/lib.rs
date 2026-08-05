@@ -18,6 +18,9 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
     let read_from: TokenStream;
     let write_to: TokenStream;
 
+    let name = input.ident;
+    let name_str = name.to_string();
+
     match input.data {
         Data::Struct(s) => {
             let mut field_reads: Vec<TokenStream> = Vec::new();
@@ -187,7 +190,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
             read_from = quote! {
                 Ok(match <#ty>::read_from(buf)?.into_len() {
                     #(#num_to_variant,)*
-                    x @ _ => return Err(crate::ReadingError::Message(format!("invalid enum index: {}",x)))
+                    x @ _ => return Err(crate::ReadingError::Message(format!("invalid {} enum index: {}",#name_str,x)))
                 })
             };
 
@@ -202,7 +205,6 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
             unimplemented!()
         }
     };
-    let name = input.ident;
 
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
 

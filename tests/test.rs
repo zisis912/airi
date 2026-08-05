@@ -30,11 +30,12 @@ fn sample_data(
     let c2s = File::open("tests/sample_data/C2S.bin").unwrap();
     let s2c = File::open("tests/sample_data/S2C.bin").unwrap();
 
-    // the last char of this string must be removed, it took me 1 hour to find this
-    let key = include_str!("sample_data/rsa_key.txt");
+    // pop newline at the end
+    let mut key = include_str!("sample_data/rsa_key.txt").chars();
+    key.next_back();
 
     let server_private_key =
-        RsaPrivateKey::from_pkcs8_der(&hex::decode(&key[0..key.len() - 1]).unwrap()).unwrap();
+        RsaPrivateKey::from_pkcs8_der(&hex::decode(key.as_str()).unwrap()).unwrap();
 
     let (decoder, mut state) = match decrypt_dir {
         Direction::Clientbound => (&mut NetworkDecoder::new(&s2c), State::Login),
@@ -46,6 +47,7 @@ fn sample_data(
 
     loop {
         let res = decoder.get_raw_packet();
+        // if we reach eof successfully test passed
         if let Err(PacketDecodeError::FailedDecompression(ref e)) = res && e == "IO error: failed to fill whole buffer" {
             return Ok(());
         }
@@ -54,9 +56,14 @@ fn sample_data(
         println!("id: {:#04x}", id);
         println!("length: {}", payload.len());
 
-        let packet = packet::packet_by_id(state, decrypt_dir, id, &mut &payload[..]).unwrap();
+        let mut payload_r =&payload[..];
+        let packet = packet::packet_by_id(state, decrypt_dir, id, &mut payload_r).unwrap();
 
         println!("{:#?}", packet);
+
+        if !payload_r.is_empty() {
+            panic!("didnt read full packet: {} bytes left", payload_r.len());
+        }
 
         match packet {
             Packet::Handshake(p) => state = p.intent.into(),
