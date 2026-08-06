@@ -2686,9 +2686,9 @@ impl Serializable for EntityEquipment {
     }
 
     fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
-        let mut iter =self.equipment.iter().peekable();
+        let mut iter = self.equipment.iter().peekable();
         while let Some(equipment_entry) = iter.next() {
-            let mut byte = vec![0u8;1];
+            let mut byte = vec![0u8; 1];
             equipment_entry.slot.write_to(&mut byte)?;
             if iter.peek().is_some() {
                 byte[0] |= 0x80
@@ -2706,8 +2706,8 @@ pub struct EquipmentEntry {
     pub item: Slot,
 }
 
-#[derive(Debug,Serializable)]
-#[enum_info(i8,0)]
+#[derive(Debug, Serializable)]
+#[enum_info(i8, 0)]
 pub enum EquipmentSlot {
     MainHand,
     Offhand,

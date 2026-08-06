@@ -104,10 +104,8 @@ impl<W: Write> NetworkEncoder<W> {
                 // TODO: We need the compressed length at the beginning of the packet so we need to write to
                 // buf here :( Is there a magic way to find a compressed length?
                 let mut compressed_buf: Vec<u8> = Vec::new();
-                let mut compressor = ZlibEncoder::new(
-                    &mut compressed_buf,
-                    Compression::new(compression_level),
-                );
+                let mut compressor =
+                    ZlibEncoder::new(&mut compressed_buf, Compression::new(compression_level));
 
                 compressor
                     .write_all(packet_data)

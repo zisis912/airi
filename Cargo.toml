@@ -1,5 +1,12 @@
-[package]
-name = "mc-rust-protocol"
+[workspace]
+resolver = "3"
+members = [
+    "airi",
+    "airi-protocol",
+    "airi-macros",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0"
@@ -9,8 +16,10 @@ readme = "README.md"
 keywords = ["minecraft","protocol","mc"]
 categories = ["asynchronous","parsing"]
 
-[dependencies]
-macros = {version="0.1.0", path = "macros" }
+[workspace.dependencies]
+airi-protocol = { path = "airi-protocol" }
+airi-macros = { path = "airi-macros" }
+
 byteorder = "1.5.0"
 serde_json = "1.0.151"
 hex = "0.4.3"
@@ -20,5 +29,27 @@ cfb8 = "0.9.1"
 flate2 = "1.1.9"
 thiserror = "2.0.19"
 take_mut = "0.2.2"
-tokio = {version = "1.53.1", features = ["io-util"]}
-async-compression = { version = "0.4.43", features = ["tokio", "zlib"] }
+tokio = {version = "1.53.1"}
+async-compression = { version = "0.4.43"}
+
+quote = "1.0.47"
+syn = "3.0.3"
+proc-macro2 = "1.0.107"
+heck = "0.5.0"
+
+chrono = "0.4.45"
+colored = "3.1.1"
+jsonwebtoken = { version="11.0.0"}
+log = "0.4.33"
+reqwest = { version = "0.13.4"}
+serde = "1.0.229"
+sha1 = "0.11.0"
+tokio-macros = "2.7.2"
+wgpu = "30.0.0"
+env_logger = "0.11.11"
+winit = "0.30.13"
+pollster = "1.0.1"
+bytemuck = "1.25.2"
+image = { version = "0.25.10", default-features = false }
+futures = "0.3.33"
+cgmath = "0.18.0"

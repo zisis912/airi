@@ -365,16 +365,15 @@ impl<L: Lengthable> Serializable for LenPrefixedBytes<L> {
 #[derive(Debug, Serializable, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct UUID(pub u128);
 
-#[derive(Error,Debug)]
+#[derive(Error, Debug)]
 pub enum UUIDParseError {
     #[error("invalid UUID size")]
     InvalidSize,
     #[error("failed to parse hex uuid")]
     HexError(#[from] FromHexError),
     #[error("invalid uuid string size, should be 36")]
-    InvalidStringSize
+    InvalidStringSize,
 }
-
 
 impl std::str::FromStr for UUID {
     type Err = UUIDParseError;
@@ -383,7 +382,7 @@ impl std::str::FromStr for UUID {
             return Err(UUIDParseError::InvalidStringSize);
         }
         let bytes = hex::decode(s.replace('-', ""))?;
-        let value = u128::from_be_bytes(bytes.try_into().map_err(|_|UUIDParseError::InvalidSize)?);
+        let value = u128::from_be_bytes(bytes.try_into().map_err(|_| UUIDParseError::InvalidSize)?);
         Ok(UUID(value))
     }
 }

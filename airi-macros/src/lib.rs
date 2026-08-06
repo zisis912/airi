@@ -41,14 +41,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                             // panic!("{:?}", matches!(field.ty, Type::Path(_)));
                             match &field.ty {
                                 Type::Path(ty_path) => {
-                                    if ty_path
-                                        .path
-                                        .segments
-                                        .iter()
-                                        .next()
-                                        .unwrap()
-                                        .ident
-                                        != "bool"
+                                    if ty_path.path.segments.iter().next().unwrap().ident != "bool"
                                     {
                                         panic!("bitfield only works with bool")
                                     }
@@ -182,7 +175,8 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                     }
                     syn::Fields::Unit => {
                         num_to_variant.push(quote!(#idx => Self::#name));
-                        variant_to_num.push(quote!(Self::#name => #ty::from_len(#idx).write_to(buf)?));
+                        variant_to_num
+                            .push(quote!(Self::#name => #ty::from_len(#idx).write_to(buf)?));
                     }
                 };
             }
@@ -248,7 +242,7 @@ impl Parse for Bitfields {
 
 // use crate::registry::{BLOCK_STATE_REGISTRY, PACKET_REGISTRY, REGISTRIES};
 static PACKET_REGISTRY: LazyLock<Value> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../../resources/packets.json"))
+    serde_json::from_str(include_str!("../resources/packets.json"))
         .expect("Could not parse packets.json registry.")
 });
 

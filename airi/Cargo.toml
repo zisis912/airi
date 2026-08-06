@@ -1,0 +1,31 @@
+[package]
+name = "airi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+airi-protocol.workspace = true
+
+chrono.workspace = true
+colored.workspace = true
+jsonwebtoken = { workspace = true, features = ["rust_crypto","use_pem"]}
+log.workspace = true
+# we use rsa rand_core for rand behavior since we dont need it anywhere else
+# rand = "0.10.2"
+reqwest = { workspace = true, features = ["json"]}
+rsa.workspace = true
+serde = { workspace=true, features = ["derive"] }
+serde_json.workspace = true
+sha1.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["net","macros","rt-multi-thread","sync", "fs"] }
+tokio-macros.workspace = true
+wgpu.workspace = true
+env_logger.workspace = true
+winit.workspace = true
+pollster.workspace = true
+bytemuck = { workspace = true, features = ["derive"] }
+image = { workspace = true, features = ["png"] }
+futures.workspace = true
+cgmath.workspace = true

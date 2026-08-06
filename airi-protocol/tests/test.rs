@@ -31,11 +31,9 @@ fn sample_data(
     let s2c = File::open("tests/sample_data/S2C.bin").unwrap();
 
     // pop newline at the end
-    let mut key = include_str!("sample_data/rsa_key.txt").chars();
-    key.next_back();
+    let key = include_str!("sample_data/rsa_key.txt").replace('\n', "");
 
-    let server_private_key =
-        RsaPrivateKey::from_pkcs8_der(&hex::decode(key.as_str()).unwrap()).unwrap();
+    let server_private_key = RsaPrivateKey::from_pkcs8_der(&hex::decode(key).unwrap()).unwrap();
 
     let (decoder, mut state) = match decrypt_dir {
         Direction::Clientbound => (&mut NetworkDecoder::new(&s2c), State::Login),
@@ -48,7 +46,9 @@ fn sample_data(
     loop {
         let res = decoder.get_raw_packet();
         // if we reach eof successfully test passed
-        if let Err(PacketDecodeError::FailedDecompression(ref e)) = res && e == "IO error: failed to fill whole buffer" {
+        if let Err(PacketDecodeError::FailedDecompression(ref e)) = res
+            && e == "IO error: failed to fill whole buffer"
+        {
             return Ok(());
         }
         let RawPacket { id, payload } = res.unwrap();
@@ -56,7 +56,7 @@ fn sample_data(
         println!("id: {:#04x}", id);
         println!("length: {}", payload.len());
 
-        let mut payload_r =&payload[..];
+        let mut payload_r = &payload[..];
         let packet = packet::packet_by_id(state, decrypt_dir, id, &mut payload_r).unwrap();
 
         println!("{:#?}", packet);
