@@ -6,15 +6,13 @@ use image::GenericImageView;
 use log::debug;
 use thiserror::Error;
 use wgpu::{
-    AddressMode, BackendOptions, Backends, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
+    Backends, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BlendState, BufferUsages, Color, ColorTargetState, ColorWrites, CurrentSurfaceTexture,
-    ExperimentalFeatures, Face, Features, FilterMode, FragmentState, FrontFace, Instance,
-    InstanceDescriptor, InstanceFlags, Limits, LoadOp, MemoryBudgetThresholds, MemoryHints,
-    MipmapFilterMode, MultisampleState, Operations, Origin3d, PipelineCompilationOptions,
+    ExperimentalFeatures, Face, Features, FragmentState, FrontFace, Instance,
+    InstanceDescriptor, InstanceFlags, Limits, LoadOp, MemoryHints, MultisampleState, Operations, PipelineCompilationOptions,
     PolygonMode, PowerPreference, PrimitiveState, PrimitiveTopology, RenderPassColorAttachment,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterError,
-    RequestAdapterOptions, RequestDeviceError, SamplerDescriptor, StoreOp, TexelCopyBufferLayout,
-    TextureAspect, TextureDimension, TextureFormat, TextureSampleType, TextureUsages,
+    RequestAdapterOptions, RequestDeviceError, StoreOp, TextureSampleType,
     TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexFormat,
     VertexState, VertexStepMode,
     util::{BufferInitDescriptor, DeviceExt},
@@ -23,7 +21,7 @@ use wgpu::{
 use winit::{
     application::ApplicationHandler,
     event::{KeyEvent, WindowEvent},
-    event_loop::{ActiveEventLoop, EventLoop, EventLoopProxy},
+    event_loop::ActiveEventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::Window,
 };
@@ -474,7 +472,7 @@ impl App {
 
 impl ApplicationHandler<State> for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let mut window_attributes = Window::default_attributes();
+        let window_attributes = Window::default_attributes();
 
         let window = Arc::new(event_loop.create_window(window_attributes).unwrap());
 

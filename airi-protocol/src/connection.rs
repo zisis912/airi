@@ -1,10 +1,9 @@
-use aes::cipher::{BlockModeDecrypt, BlockModeEncrypt, BlockSizeUser};
 use std::{
-    io::{self, Error, Read, Write},
+    io::{self, Read, Write},
     pin::Pin,
     task::{Context, Poll},
 };
-use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 pub type Aes128Cfb8Enc = cfb8::Encryptor<aes::Aes128>;
 pub type Aes128Cfb8Dec = cfb8::Decryptor<aes::Aes128>;

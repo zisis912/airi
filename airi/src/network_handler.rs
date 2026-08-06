@@ -1,4 +1,3 @@
-use log::{debug, trace};
 use airi_protocol::{
     RawPacket,
     async_packet_decoder::AsyncNetworkDecoder,
@@ -16,6 +15,7 @@ use airi_protocol::{
         packet_by_id,
     },
 };
+use log::{debug, trace};
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey, rand_core::RngCore};
 use tokio::{
     io::{BufReader, BufWriter},

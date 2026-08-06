@@ -1,16 +1,16 @@
 use std::{collections::HashMap, error::Error, process, time::Duration};
 
-use log::{debug, warn};
 use airi_protocol::{
-    IdOrX, ReadingError, TextComponent, UUID, VarInt, Vec3, nbt,
+    TextComponent, UUID, VarInt, Vec3, nbt,
     packet::{
-        Intent, PROTOCOL_VERSION, Packet, State, XorY,
+        Intent, PROTOCOL_VERSION, Packet, XorY,
         c2s::{
             handshake::Handshake,
-            login::{LoginAcknowledged, LoginStart},
+            login::LoginStart,
         },
     },
 };
+use log::{debug, warn};
 
 use tokio::{
     net::TcpStream,
@@ -21,8 +21,8 @@ use tokio::{
 use winit::event_loop::EventLoop;
 
 use crate::{
-    auth::{AuthError, Profile},
-    entity::{Entity, Player},
+    auth::AuthError,
+    entity::Entity,
     logger::init_logger,
     network_handler::NetworkHandler,
     render::App,

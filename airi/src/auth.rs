@@ -82,7 +82,7 @@ impl Profile {
         let mc_access_token = Self::minecraft_auth(userhash1, xsts_token).await?;
         // we are forced to ignore this and not error, because even if the user doesnt
         //own the game he could have Xbox gamepass, which doesnt show up as ownership
-        let owns_game = Self::check_ownership(&mc_access_token).await?;
+        let _owns_game = Self::check_ownership(&mc_access_token).await?;
         let mc_profile = Self::get_minecraft_profile(&mc_access_token).await?;
 
         Ok(Profile {
@@ -290,11 +290,11 @@ impl Profile {
 
         // i dont know why im even unwrapping these, just need to know they exist
         let jwt1 = ret.pointer("items/0").and_then(Value::as_str).unwrap();
-        let jwt2 = ret.pointer("items/1").and_then(Value::as_str).unwrap();
-        let jwt3 = ret.get("signature").and_then(Value::as_str).unwrap();
+        let _jwt2 = ret.pointer("items/1").and_then(Value::as_str).unwrap();
+        let _jwt3 = ret.get("signature").and_then(Value::as_str).unwrap();
 
         // checking one signature is enough to know if its forged or not
-        let dec = jsonwebtoken::decode::<Value>(
+        let _dec = jsonwebtoken::decode::<Value>(
             jwt1,
             &DecodingKey::from_rsa_pem(MOJANG_PUBLIC_KEY.as_bytes()).unwrap(),
             &Validation::new(Algorithm::HS256),

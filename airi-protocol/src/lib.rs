@@ -1,6 +1,6 @@
+use airi_macros::Serializable;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use hex::FromHexError;
-use airi_macros::Serializable;
 use std::{
     fmt::{Debug, Display},
     io::{self, Read},

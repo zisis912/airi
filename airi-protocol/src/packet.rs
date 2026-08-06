@@ -2693,7 +2693,7 @@ impl Serializable for EntityEquipment {
             if iter.peek().is_some() {
                 byte[0] |= 0x80
             }
-            buf.write(&byte)?;
+            buf.write_u8(byte[0])?;
             equipment_entry.item.write_to(buf)?;
         }
         Ok(())
