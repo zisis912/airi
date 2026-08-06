@@ -1,4 +1,4 @@
-use mc_rust_protocol::{Identifier, packet::WaypointData};
+use airi_protocol::{Identifier, packet::WaypointData};
 
 #[derive(Default)]
 pub struct WorldTime {

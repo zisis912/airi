@@ -1,5 +1,5 @@
 use log::{debug, trace};
-use mc_rust_protocol::{
+use airi_protocol::{
     RawPacket,
     async_packet_decoder::AsyncNetworkDecoder,
     async_packet_encoder::AsyncNetworkEncoder,

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, error::Error, process, time::Duration};
 
 use log::{debug, warn};
-use mc_rust_protocol::{
+use airi_protocol::{
     IdOrX, ReadingError, TextComponent, UUID, VarInt, Vec3, nbt,
     packet::{
         Intent, PROTOCOL_VERSION, Packet, State, XorY,

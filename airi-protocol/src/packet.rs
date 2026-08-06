@@ -9,8 +9,8 @@ use crate::slot::PaintingVariant;
 use crate::slot::Slot;
 
 use super::*;
-use macros::Serializable;
-use macros::get_entry;
+use airi_macros::Serializable;
+use airi_macros::get_entry;
 
 pub const PROTOCOL_VERSION: i32 = 773;
 

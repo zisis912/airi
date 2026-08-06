@@ -1,4 +1,4 @@
-use mc_rust_protocol::{Angle, UUID, VarInt, Vec3, packet::s2c::play::SetExperience};
+use airi_protocol::{Angle, UUID, VarInt, Vec3, packet::s2c::play::SetExperience};
 
 #[derive(Default, Debug)]
 pub struct Entity {

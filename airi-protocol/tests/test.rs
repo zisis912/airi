@@ -1,6 +1,6 @@
 use std::{error::Error, fs::File};
 
-use mc_rust_protocol::{
+use airi_protocol::{
     RawPacket,
     packet::{self, Direction, Packet, State},
     packet_decoder::{NetworkDecoder, PacketDecodeError},
