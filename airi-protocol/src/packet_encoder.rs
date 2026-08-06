@@ -19,6 +19,8 @@ pub enum PacketEncodeError {
     CompressionFailed(String),
     #[error("Writing packet failed: {0}")]
     Message(String),
+    #[error("Invalid Aes Key")]
+    EncryptionFailed,
 }
 
 #[derive(Error, Debug)]
@@ -46,12 +48,15 @@ impl<W: Write> NetworkEncoder<W> {
     }
 
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
-    pub fn set_encryption(&mut self, key: &[u8; 16]) {
+    pub fn set_encryption(&mut self, key: &[u8; 16]) -> Result<(), PacketEncodeError> {
         if matches!(self.writer, EncryptionWriter::Encrypt(_)) {
             panic!("Cannot upgrade a stream that already has a cipher!");
         }
-        let cipher = Aes128Cfb8Enc::new_from_slices(key, key).expect("invalid key");
+        let cipher = Aes128Cfb8Enc::new_from_slices(key, key)
+            .map_err(|_| PacketEncodeError::EncryptionFailed)?;
         take_mut::take(&mut self.writer, |encoder| encoder.upgrade(cipher));
+        // if let Some(writer) = self.writer.take
+        Ok(())
     }
 
     /// Appends a Clientbound `ClientPacket` to the internal buffer and applies compression when needed.
