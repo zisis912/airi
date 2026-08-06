@@ -1,4 +1,4 @@
-# mc-rust-protocol
+# airi-protocol
 
 Full implementation of the [Minecraft Java Edition network protocol spec](https://minecraft.wiki/w/Java_Edition_protocol/Packets) in Rust.
 
@@ -17,7 +17,7 @@ If it fails to read any packet, the test fails.
 
 ## Basic Usage
 
-Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder` and `AsyncNetworkEncoder`
+Note: Async versions of all of these structs exist, such as `AsyncNetworkDecoder` and `AsyncNetworkEncoder`, which implement `AsyncRead` and `AsyncWrite` respectively.
 
 ### Reading Packets
 

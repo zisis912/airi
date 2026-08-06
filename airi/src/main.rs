@@ -193,7 +193,7 @@ impl Client {
                 let registry = self
                     .registry
                     .entry(p.registry_id.clone())
-                    .or_insert_with(|| HashMap::new());
+                    .or_default();
 
                 for entry in &p.entries.data {
                     registry.insert(entry.entry_id.clone(), entry.data.clone());

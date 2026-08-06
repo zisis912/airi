@@ -7,14 +7,11 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/zisis912/airi"
-description = "Full implementation of the Minecraft Network Protocol Spec"
 readme = "README.md"
-keywords = ["minecraft","protocol","mc"]
-categories = ["asynchronous","parsing"]
 
 [workspace.dependencies]
 airi-protocol = { path = "airi-protocol" }

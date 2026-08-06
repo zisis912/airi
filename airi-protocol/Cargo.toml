@@ -1,9 +1,13 @@
 [package]
 name = "airi-protocol"
+description = "Full implementation of the Minecraft Network Protocol Spec"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 exclude = ["tests"]
+keywords = ["minecraft","protocol","mc"]
+categories = ["asynchronous","parsing"]
 
 [dependencies]
 airi-macros.workspace = true

@@ -36,8 +36,6 @@ pub struct NetworkHandler {
     pub profile: Option<Profile>,
     pub state: State,
     pub s2c_send: Sender<Packet>,
-    // pub s2c_recv: Receiver<Packet>,
-    // pub c2s_send: Sender<Packet>,
     pub c2s_recv: Receiver<Packet>,
     pub network_writer: AsyncNetworkEncoder<BufWriter<OwnedWriteHalf>>,
     pub network_reader: AsyncNetworkDecoder<BufReader<OwnedReadHalf>>,
@@ -201,10 +199,7 @@ impl NetworkHandler {
     }
 
     fn handle_c2s_internal(&mut self, packet: &Packet) {
-        match packet {
-            Packet::Handshake(p) => self.state = p.intent.into(),
-            _ => {}
-        }
+        if let Packet::Handshake(p) = packet { self.state = p.intent.into() }
     }
 
     async fn send_packet(&mut self, packet: Packet) {
