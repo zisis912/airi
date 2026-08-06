@@ -38,7 +38,7 @@ Useful functions:
 
 ```rust
 // creates unencrypted writer
-let decoder = NetworkEncoder::new(W: Write);
+let encoder = NetworkEncoder::new(W: Write);
 // enables Zlib compression on the writer
 encoder.set_compression(256);
 // enables AES256-Cfb8 encryption
