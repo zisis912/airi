@@ -7,6 +7,8 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 use crate::{ReadingError, Serializable, WritingError};
 
+// TODO: should lowkey rewrite this in serde
+
 #[derive(Debug, Clone)]
 pub enum Tag {
     End,
@@ -41,6 +43,7 @@ impl Tag {
     }
 
     /// WILL panic if this is not a compound
+    /// will fix in serde rewrite i swear
     pub fn put(&mut self, name: &str, tag: Tag) {
         match *self {
             Tag::Compound(ref mut val) => val.insert(name.to_owned(), tag),
@@ -270,6 +273,8 @@ impl Serializable for Tag {
     }
 }
 
+// nbt string use i16 smh
+
 pub fn write_string<W: io::Write>(buf: &mut W, s: &str) -> Result<(), WritingError> {
     let data = s.as_bytes();
     (data.len() as i16).write_to(buf)?;
@@ -280,6 +285,6 @@ pub fn read_string<R: io::Read>(buf: &mut R) -> Result<String, ReadingError> {
     let len: i16 = buf.read_i16::<BigEndian>()?;
     let mut bytes = Vec::<u8>::new();
     buf.take(len as u64).read_to_end(&mut bytes)?;
-    let ret = String::from_utf8(bytes).unwrap();
+    let ret = String::from_utf8(bytes)?;
     Result::Ok(ret)
 }

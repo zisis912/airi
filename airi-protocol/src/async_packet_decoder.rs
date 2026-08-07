@@ -42,9 +42,6 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
 
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
     pub fn set_encryption(&mut self, key: &[u8; 16]) {
-        // if matches!(self.reader, AsyncDecryptionReader::Decrypt(_)) {
-        //     panic!("Cannot upgrade a stream that already has a cipher!");
-        // }
         let cipher = Aes128Cfb8Dec::new_from_slices(key, key).expect("invalid key");
         take_mut::take(&mut self.reader, |decoder| decoder.upgrade(cipher));
     }

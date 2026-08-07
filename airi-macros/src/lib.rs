@@ -38,7 +38,6 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                         for (i, field) in f.named.iter().enumerate() {
                             let name = &field.ident;
 
-                            // panic!("{:?}", matches!(field.ty, Type::Path(_)));
                             match &field.ty {
                                 Type::Path(ty_path) => {
                                     if ty_path.path.segments.iter().next().unwrap().ident != "bool"
@@ -53,7 +52,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                             field_writes.push(quote!( val |= (self.#name as #ty) << #i; ));
                         }
                     }
-                    _ => panic!("unimplemented"),
+                    _ => unimplemented!(),
                 };
 
                 read_from = quote! {
@@ -260,11 +259,7 @@ pub fn get_entry(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         _ => panic!("invalid packet direction"),
     }
     .to_owned();
-    // panic!(
-    //     "{}{}",
-    //     "minecraft:".to_owned() + &packet_name,
-    //     PACKET_REGISTRY[state][direction]["minecraft:".to_owned() + &packet_name]
-    // );
+
     let id: i32 =
         PACKET_REGISTRY[state][direction]["minecraft:".to_owned() + &packet_name]["protocol_id"]
             .as_i64()

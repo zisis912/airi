@@ -41,6 +41,7 @@ use std::{
     io::{self, Read},
     marker::PhantomData,
     ops::Add,
+    str::FromStr,
     string::FromUtf8Error,
 };
 use thiserror::Error;
@@ -117,6 +118,8 @@ pub enum ReadingError {
     TooLarge(String),
     #[error("{0}")]
     Message(String),
+    #[error("{0}")]
+    IdentifierParseError(#[from] IdentifierParseError),
 }
 
 pub trait Serializable: Sized {
@@ -490,7 +493,92 @@ impl<T: Serializable> Serializable for Option<T> {
     }
 }
 
-pub type Identifier = String;
+#[derive(Debug, PartialEq)]
+pub struct Identifier {
+    namespace: String,
+    path: String,
+}
+
+impl Identifier {
+    const SEPARATOR: char = ':';
+    const DEFAULT_NAMESPACE: &'static str = "minecraft";
+
+    fn is_valid_namespace_char(c: char) -> bool {
+        c.is_ascii_digit() || c.is_ascii_lowercase() || c == '_' || c == '-' || c == '.'
+    }
+
+    fn is_valid_path_char(c: char) -> bool {
+        Self::is_valid_namespace_char(c) || c == '/'
+    }
+
+    fn is_valid_namespace(namespace: &str) -> bool {
+        if namespace == ".." {
+            return false;
+        }
+        namespace.chars().all(Self::is_valid_namespace_char)
+    }
+
+    fn is_valid_path(path: &str) -> bool {
+        path.chars().all(Self::is_valid_path_char)
+    }
+
+    pub fn new(namespace: &str, path: &str) -> Result<Self, IdentifierParseError> {
+        let ident = Self {
+            namespace: namespace.to_owned(),
+            path: path.to_owned(),
+        };
+        if !Self::is_valid_namespace(namespace) || !Self::is_valid_path(path) {
+            return Err(IdentifierParseError {
+                ident: ident.to_string(),
+            });
+        };
+
+        Ok(ident)
+    }
+}
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}{}", self.namespace, Self::SEPARATOR, self.path)
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("Failed to parse identifier: {}",.ident)]
+pub struct IdentifierParseError {
+    ident: String,
+}
+
+impl FromStr for Identifier {
+    type Err = IdentifierParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some((namespace, path)) = s.split_once(Self::SEPARATOR) {
+            Identifier::new(namespace, path)
+        } else {
+            if !Self::is_valid_path(s) {
+                return Err(IdentifierParseError {
+                    ident: s.to_owned(),
+                });
+            }
+            Ok(Self {
+                namespace: Self::DEFAULT_NAMESPACE.to_owned(),
+                path: s.to_owned(),
+            })
+        }
+    }
+}
+
+impl Serializable for Identifier {
+    fn read_from<R: io::Read>(buf: &mut R) -> Result<Self, ReadingError> {
+        Ok(Self::from_str(&String::read_from(buf)?)?)
+    }
+
+    fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
+        self.to_string().write_to(buf)?;
+        Ok(())
+    }
+}
 
 // pub type JsonTextComponent = serde_json::Value;
 pub type JsonTextComponent = String;

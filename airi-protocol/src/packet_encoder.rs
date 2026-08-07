@@ -52,9 +52,6 @@ impl<W: Write> NetworkEncoder<W> {
     /// Enable Aes128-Cfb8 encryption on the writer.
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
     pub fn set_encryption(&mut self, key: &[u8; 16]) -> Result<(), PacketEncodeError> {
-        // if matches!(self.writer, EncryptionWriter::Encrypt(_)) {
-        //     panic!("Cannot upgrade a stream that already has a cipher!");
-        // }
         let cipher = Aes128Cfb8Enc::new_from_slices(key, key)
             .map_err(|_| PacketEncodeError::EncryptionFailed)?;
         take_mut::take(&mut self.writer, |encoder| encoder.upgrade(cipher));
