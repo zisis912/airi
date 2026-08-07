@@ -1,6 +1,7 @@
 [package]
 name = "airi-macros"
 version = "0.1.0"
+description = "helper macros for the airi-protocol crate"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
