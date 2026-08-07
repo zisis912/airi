@@ -34,9 +34,13 @@ impl From<ReadingError> for PacketDecodeError {
     }
 }
 
-/// Decoder: Client -> Server
-/// Supports ZLib decoding/decompression
-/// Supports Aes128 Encryption
+/// Wrapper type over an implementor of [`std::io::Read`]. Provides the [`get_raw_packet`]
+/// method, used to read a raw minecraft packet (id and payload) from an encrypted/compressed
+/// stream.
+///
+/// Supports Zlib decompression and Aes128-Cfb8 decryption.
+///
+/// [`get_raw_packet`]: NetworkDecoder::get_raw_packet
 pub struct NetworkDecoder<R: Read> {
     reader: DecryptionReader<R>,
     compression: Option<CompressionThreshold>,

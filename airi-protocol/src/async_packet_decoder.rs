@@ -15,9 +15,13 @@ use crate::{
     packet_decoder::PacketDecodeError,
 };
 
-/// Decoder: Client -> Server
-/// Supports ZLib decoding/decompression
-/// Supports Aes128 Encryption
+/// Wrapper type over an implementor of [`tokio::io::AsyncRead`]. Provides the async [`get_raw_packet`]
+/// method, used to read a raw minecraft packet (id and payload) from an encrypted/compressed
+/// stream.
+///
+/// Supports Zlib decompression and Aes128-Cfb8 decryption.
+///
+/// [`get_raw_packet`]: AsyncNetworkDecoder::get_raw_packet
 #[derive(Debug)]
 pub struct AsyncNetworkDecoder<R: AsyncRead + Unpin> {
     reader: AsyncDecryptionReader<R>,
@@ -38,9 +42,9 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
 
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
     pub fn set_encryption(&mut self, key: &[u8; 16]) {
-        if matches!(self.reader, AsyncDecryptionReader::Decrypt(_)) {
-            panic!("Cannot upgrade a stream that already has a cipher!");
-        }
+        // if matches!(self.reader, AsyncDecryptionReader::Decrypt(_)) {
+        //     panic!("Cannot upgrade a stream that already has a cipher!");
+        // }
         let cipher = Aes128Cfb8Dec::new_from_slices(key, key).expect("invalid key");
         take_mut::take(&mut self.reader, |decoder| decoder.upgrade(cipher));
     }
@@ -64,30 +68,28 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
         let mut reader = if let Some(threshold) = self.compression {
             let decompressed_length = VarInt::read_async(&mut bounded_reader).await?;
             let raw_packet_length = packet_len - decompressed_length.written_size() as u64;
-            let decompressed_length = decompressed_length.0 as usize;
+            let decompressed_length = VarInt::read_async(&mut bounded_reader).await?.0 as usize;
 
             if !(0..=MAX_PACKET_DATA_SIZE).contains(&decompressed_length) {
                 Err(PacketDecodeError::TooLong)?
             }
 
-            if decompressed_length > 0 {
-                AsyncDecompressionReader::Decompress(ZlibDecoder::new(BufReader::new(
-                    bounded_reader,
-                )))
-            } else {
+            // if packet is uncompressed
+            if decompressed_length == 0 {
                 // Validate that we are not less than the compression threshold
                 if raw_packet_length > threshold as u64 {
                     Err(PacketDecodeError::NotCompressed)?
                 }
 
                 AsyncDecompressionReader::None(bounded_reader)
+            } else {
+                AsyncDecompressionReader::Decompress(ZlibDecoder::new(BufReader::new(
+                    bounded_reader,
+                )))
             }
         } else {
             AsyncDecompressionReader::None(bounded_reader)
         };
-
-        // TODO: Serde is sync so we need to write to a buffer here :(
-        // Is there a way to deserialize in an asynchronous manner?
 
         let packet_id = VarInt::read_async(&mut reader)
             .await

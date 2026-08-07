@@ -23,9 +23,13 @@ pub enum PacketEncodeError {
     EncryptionFailed,
 }
 
-/// Encoder: Server -> Client
-/// Supports ZLib endecoding/compression
-/// Supports Aes128-Cfb8 Encryption
+/// Wrapper type over an implementor of [`tokio::io::AsyncWrite`]. Provides the [`write_packet`]
+/// method, used to write a raw minecraft packet (varint id followed by data) to an encrypted/compressed
+/// stream.
+///
+/// Supports Zlib compression and Aes128-Cfb8 encryption.
+///
+/// [`write_packet`]: NetworkEncoder::write_packet
 pub struct NetworkEncoder<W: Write> {
     writer: EncryptionWriter<W>,
     // compression and compression threshold

@@ -75,9 +75,13 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncEncryptionWriter<W> {
     }
 }
 
-/// Encoder: Server -> Client
-/// Supports ZLib endecoding/compression
-/// Supports Aes128-Cfb8 Encryption
+/// Wrapper type over an implementor of [`std::io::Write`]. Provides the async [`write_packet`]
+/// method, used to write a raw minecraft packet (varint id followed by data) to an encrypted/compressed
+/// stream.
+///
+/// Supports Zlib compression and Aes128-Cfb8 encryption.
+///
+/// [`write_packet`]: AsyncNetworkEncoder::write_packet
 pub struct AsyncNetworkEncoder<W: AsyncWrite + Unpin> {
     writer: AsyncEncryptionWriter<W>,
     compression: Option<(CompressionThreshold, CompressionLevel)>,
