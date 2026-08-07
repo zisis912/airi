@@ -12,10 +12,14 @@ impl log::Log for SimpleLogger {
         //     return false;
         // }
 
-        metadata.level() <= Level::Debug
+        metadata.level() <= Level::Info
     }
 
     fn log(&self, record: &Record) {
+        if record.target().starts_with("wgpu") && record.level() > Level::Warn {
+            return;
+        }
+
         if self.enabled(record.metadata()) {
             let dt: DateTime<Local> = Local::now();
             println!(

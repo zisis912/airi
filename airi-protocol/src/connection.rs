@@ -52,8 +52,6 @@ impl<R: AsyncRead + Unpin> AsyncRead for AsyncStreamDecryptor<R> {
     ) -> Poll<io::Result<()>> {
         let this = self.get_mut();
 
-        let cipher = &mut this.cipher;
-
         // Get the starting position
         let original_fill = buf.filled().len();
 
@@ -63,7 +61,7 @@ impl<R: AsyncRead + Unpin> AsyncRead for AsyncStreamDecryptor<R> {
 
         if let Poll::Ready(Ok(())) = internal_poll {
             // Decrypt the raw data in-place, note that our block size is 1 byte, so this is always safe
-            cipher.decrypt(&mut buf.filled_mut()[original_fill..]);
+            this.cipher.decrypt(&mut buf.filled_mut()[original_fill..]);
         };
 
         internal_poll

@@ -65,7 +65,7 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
         let mut reader = if let Some(threshold) = self.compression {
             let decompressed_length = VarInt::read_async(&mut bounded_reader).await?;
             let raw_packet_length = packet_len - decompressed_length.written_size() as u64;
-            let decompressed_length = VarInt::read_async(&mut bounded_reader).await?.0 as usize;
+            let decompressed_length = decompressed_length.0 as usize;
 
             if !(0..=MAX_PACKET_DATA_SIZE).contains(&decompressed_length) {
                 Err(PacketDecodeError::TooLong)?
@@ -88,10 +88,7 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
             AsyncDecompressionReader::None(bounded_reader)
         };
 
-        let packet_id = VarInt::read_async(&mut reader)
-            .await
-            .map_err(|_| PacketDecodeError::DecodeID)?
-            .0;
+        let packet_id = VarInt::read_async(&mut reader).await?.0;
 
         let mut payload = Vec::new();
         reader

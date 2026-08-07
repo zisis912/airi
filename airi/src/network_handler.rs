@@ -16,6 +16,7 @@ use airi_protocol::{
     },
 };
 use log::{debug, trace};
+use log::{info, log};
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey, rand_core::RngCore};
 use tokio::{
     io::{BufReader, BufWriter},
@@ -86,7 +87,7 @@ impl NetworkHandler {
     }
 
     async fn handle_s2c_internal(&mut self, packet: &Packet) {
-        trace!("{:?}", packet);
+        info!("{:?}", packet);
 
         match packet {
             Packet::EncryptionRequest(p) => {
@@ -191,13 +192,17 @@ impl NetworkHandler {
     }
 
     fn parse_raw_packet(&mut self, p: RawPacket) -> Packet {
-        packet_by_id(
-            self.state,
-            Direction::Clientbound,
-            p.id,
-            &mut &p.payload[..],
-        )
-        .unwrap()
+        let mut payload_r = &p.payload[..];
+        let packet =
+            packet_by_id(self.state, Direction::Clientbound, p.id, &mut payload_r).unwrap();
+
+        // println!("{:#?}", packet);
+
+        if !payload_r.is_empty() {
+            panic!("didnt read full packet: {} bytes left", payload_r.len());
+        }
+
+        packet
     }
 
     fn handle_c2s_internal(&mut self, packet: &Packet) {
@@ -207,7 +212,7 @@ impl NetworkHandler {
     }
 
     async fn send_packet(&mut self, packet: Packet) {
-        trace!("{:?}", packet);
+        info!("{:?}", packet);
 
         let mut packet_buf = Vec::new();
         packet.write(&mut packet_buf).unwrap();
@@ -215,7 +220,7 @@ impl NetworkHandler {
     }
 
     async fn send_packet_now<P: PacketType>(&mut self, packet: P) {
-        trace!("{:?}", packet);
+        info!("{:?}", packet);
 
         let mut packet_buf = Vec::new();
         packet.write(&mut packet_buf).unwrap();

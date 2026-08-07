@@ -12,6 +12,8 @@ use crate::{
 
 #[derive(Error, Debug)]
 pub enum PacketDecodeError {
+    #[error("{0}")]
+    IoError(#[from] io::Error),
     #[error("failed to decode packet ID")]
     DecodeID,
     #[error("packet exceeds maximum length")]
@@ -97,9 +99,7 @@ impl<R: Read> NetworkDecoder<R> {
             DecompressionReader::None(bounded_reader)
         };
 
-        let packet_id = VarInt::read_from(&mut reader)
-            .map_err(|_| PacketDecodeError::DecodeID)?
-            .0;
+        let packet_id = VarInt::read_from(&mut reader)?.0;
 
         let mut payload = Vec::new();
         reader
