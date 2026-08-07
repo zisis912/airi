@@ -113,7 +113,7 @@ impl<R: Read> NetworkDecoder<R> {
 }
 
 // decrypt -> decompress -> raw
-pub enum DecompressionReader<R: Read> {
+enum DecompressionReader<R: Read> {
     Decompress(ZlibDecoder<BufReader<R>>),
     None(R),
 }
@@ -127,7 +127,7 @@ impl<R: Read> Read for DecompressionReader<R> {
     }
 }
 
-pub enum DecryptionReader<R: Read> {
+enum DecryptionReader<R: Read> {
     Decrypt(Box<StreamDecryptor<R>>),
     None(R),
 }

@@ -3,6 +3,18 @@ use std::{
     pin::Pin,
 };
 
+use aes::cipher::KeyIvInit;
+use tokio::io::{AsyncReadExt, BufReader};
+
+use async_compression::tokio::bufread::ZlibDecoder;
+use tokio::io::AsyncRead;
+
+use crate::{
+    CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, RawPacket, VarInt,
+    connection::{Aes128Cfb8Dec, AsyncStreamDecryptor},
+    packet_decoder::PacketDecodeError,
+};
+
 /// Decoder: Client -> Server
 /// Supports ZLib decoding/decompression
 /// Supports Aes128 Encryption
@@ -95,19 +107,7 @@ impl<R: AsyncRead + Unpin> AsyncNetworkDecoder<R> {
     }
 }
 
-use aes::cipher::KeyIvInit;
-use tokio::io::{AsyncReadExt, BufReader};
-
-use async_compression::tokio::bufread::ZlibDecoder;
-use tokio::io::AsyncRead;
-
-use crate::{
-    CompressionThreshold, MAX_PACKET_DATA_SIZE, MAX_PACKET_SIZE, RawPacket, VarInt,
-    connection::{Aes128Cfb8Dec, AsyncStreamDecryptor},
-    packet_decoder::PacketDecodeError,
-};
-
-pub enum AsyncDecompressionReader<R: AsyncRead + Unpin> {
+enum AsyncDecompressionReader<R: AsyncRead + Unpin> {
     Decompress(ZlibDecoder<BufReader<R>>),
     None(R),
 }
@@ -132,7 +132,7 @@ impl<R: AsyncRead + Unpin> AsyncRead for AsyncDecompressionReader<R> {
 }
 
 #[derive(Debug)]
-pub enum AsyncDecryptionReader<R: AsyncRead + Unpin> {
+enum AsyncDecryptionReader<R: AsyncRead + Unpin> {
     Decrypt(Box<AsyncStreamDecryptor<R>>),
     None(R),
 }

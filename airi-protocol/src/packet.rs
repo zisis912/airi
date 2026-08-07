@@ -67,6 +67,26 @@ macro_rules! state_packets {
             }
         }
 
+        /// Reads a packet from a reader, given its id, `State` and `Direction`.
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// let mut payload = Vec::new();
+        ///
+        /// let packet1 = Handshake {
+        ///     protocol_version: VarInt(773),
+        ///     server_address: "localhost".to_owned(),
+        ///     server_port: 25565,
+        ///     intent: Intent::Login,
+        /// };
+        ///
+        /// packet1.write_to(&mut payload)?;
+        ///
+        /// let mut packet2 = packet_by_id(State::Handshake, Direction::Serverbound, Handshake::ID, &mut &payload)?;
+        ///
+        /// assert_eq!(packet1.server_address,packet2.server_address)
+        /// ```
         pub fn packet_by_id<R: io::Read>(state: State, dir: Direction, id: i32, buf: &mut R) -> Result<Packet, ReadingError> {
             // println!("{:?} {:?} {:?}",state,dir,id);
             Ok(match dir {
@@ -104,6 +124,12 @@ pub enum Direction {
 pub trait PacketType: Serializable + Debug {
     const ID: i32;
 
+    /// Write the packet's ID as a VarInt, then the packet itself into `buf`.
+    ///
+    /// `PacketType::write()` and `Packet::write()` should be **heavily** preferred
+    /// over using `Serializable::write_to()` on the underlying packet data types,
+    /// since there will never be a scenario where you need to write a packet without
+    /// preceding it with its ID.
     fn write<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         VarInt(Self::ID).write_to(buf)?;
         self.write_to(buf)?;
@@ -2688,8 +2714,8 @@ impl Serializable for EntityEquipment {
     fn write_to<W: io::Write>(&self, buf: &mut W) -> Result<(), WritingError> {
         let mut iter = self.equipment.iter().peekable();
         while let Some(equipment_entry) = iter.next() {
-            let mut byte = vec![0u8; 1];
-            equipment_entry.slot.write_to(&mut byte)?;
+            let mut byte = [0u8; 1];
+            equipment_entry.slot.write_to(&mut byte.as_mut_slice())?;
             if iter.peek().is_some() {
                 byte[0] |= 0x80
             }

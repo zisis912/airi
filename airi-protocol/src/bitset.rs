@@ -29,6 +29,7 @@ impl BitSet {
 
 #[derive(Debug)]
 pub struct FixedBitSet<const L: usize> {
+    // data: Vec<u8>,
     data: Vec<u8>,
 }
 

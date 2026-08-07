@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "airi"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "airi-protocol",
  "bytemuck",
@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "airi-macros"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -97,7 +97,7 @@ dependencies = [
 
 [[package]]
 name = "airi-protocol"
-version = "1.0.0"
+version = "0.1.0"
 dependencies = [
  "aes",
  "airi-macros",

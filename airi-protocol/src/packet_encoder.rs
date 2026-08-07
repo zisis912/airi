@@ -23,12 +23,9 @@ pub enum PacketEncodeError {
     EncryptionFailed,
 }
 
-#[derive(Error, Debug)]
-#[error("Invalid compression Level")]
-pub struct CompressionLevelError;
-
+/// Encoder: Server -> Client
 /// Supports ZLib endecoding/compression
-/// Supports Aes128 Encryption
+/// Supports Aes128-Cfb8 Encryption
 pub struct NetworkEncoder<W: Write> {
     writer: EncryptionWriter<W>,
     // compression and compression threshold
@@ -43,15 +40,17 @@ impl<W: Write> NetworkEncoder<W> {
         }
     }
 
+    /// Set the zlib compression threshold and compression level of the writer.
     pub fn set_compression(&mut self, compression_info: (CompressionThreshold, CompressionLevel)) {
         self.compression = Some(compression_info);
     }
 
+    /// Enable Aes128-Cfb8 encryption on the writer.
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
     pub fn set_encryption(&mut self, key: &[u8; 16]) -> Result<(), PacketEncodeError> {
-        if matches!(self.writer, EncryptionWriter::Encrypt(_)) {
-            panic!("Cannot upgrade a stream that already has a cipher!");
-        }
+        // if matches!(self.writer, EncryptionWriter::Encrypt(_)) {
+        //     panic!("Cannot upgrade a stream that already has a cipher!");
+        // }
         let cipher = Aes128Cfb8Enc::new_from_slices(key, key)
             .map_err(|_| PacketEncodeError::EncryptionFailed)?;
         take_mut::take(&mut self.writer, |encoder| encoder.upgrade(cipher));
@@ -89,7 +88,7 @@ impl<W: Write> NetworkEncoder<W> {
     /// -   `Data Length`: (Only present in compressed packets) The length of the uncompressed `Packet ID` and `Data`.
     /// -   `Packet ID`: The ID of the packet.
     /// -   `Data`: The packet's data.
-    pub async fn write_packet(&mut self, packet_data: &[u8]) -> Result<(), PacketEncodeError> {
+    pub fn write_packet(&mut self, packet_data: &[u8]) -> Result<(), PacketEncodeError> {
         let data_len = packet_data.len();
         if data_len > MAX_PACKET_DATA_SIZE {
             return Err(PacketEncodeError::TooLong(data_len));
@@ -203,7 +202,7 @@ impl<W: Write> NetworkEncoder<W> {
     }
 }
 
-pub enum EncryptionWriter<W: Write> {
+enum EncryptionWriter<W: Write> {
     Encrypt(Box<StreamEncryptor<W>>),
     None(W),
 }

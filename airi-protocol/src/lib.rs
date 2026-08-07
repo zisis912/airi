@@ -1,3 +1,38 @@
+//! This library exposes a full Rust API implementation of the [Minecraft Java Edition Network
+//! Protocol](https://minecraft.wiki/w/Java_Edition_protocol/Packets).
+//!
+//! It includes every known data type and packet, as well as wrappers over the encryption/compression
+//! schemes present in the vanilla game.
+//!
+//! # Example Usage
+//!
+//! ```
+//! let mut writer: File = //...
+//! let aes_key: [u8;16] = //...
+//!
+//! // Create an encoder in order to serialize packets
+//! let encoder = NetworkEncoder::new(&mut writer);
+//!
+//! // Apply encryption and/or compression to the encoder
+//! encoder.set_encryption(&aes_key);
+//! encoder.set_compression((256,6));
+//!
+//! let mut payload = Vec::new();
+//!
+//! // Prepare packet payload
+//! Packet::Handshake(Handshake {
+//!     protocol_version: VarInt(773),
+//!     server_address: "localhost".to_owned(),
+//!     server_port: 25565,
+//!     intent: Intent::Login,
+//! }).write(&mut payload)?;
+//!
+//! // Send the payload to the writer.
+//! // It will be encrypted and compressed.
+//! encoder.write_packet(&payload);
+//! ```
+//!
+
 use airi_macros::Serializable;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use hex::FromHexError;
@@ -22,6 +57,13 @@ pub mod packet_decoder;
 pub mod packet_encoder;
 pub mod slot;
 pub mod text_component;
+
+pub use async_packet_decoder::AsyncNetworkDecoder;
+pub use async_packet_encoder::AsyncNetworkEncoder;
+pub use packet::Packet;
+pub use packet::packet_by_id;
+pub use packet_decoder::NetworkDecoder;
+pub use packet_encoder::NetworkEncoder;
 
 pub const MAX_PACKET_SIZE: u64 = 2097152;
 pub const MAX_PACKET_DATA_SIZE: usize = 8388608;

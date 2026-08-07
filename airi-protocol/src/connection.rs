@@ -5,8 +5,8 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite};
 
-pub type Aes128Cfb8Enc = cfb8::Encryptor<aes::Aes128>;
-pub type Aes128Cfb8Dec = cfb8::Decryptor<aes::Aes128>;
+pub(super) type Aes128Cfb8Enc = cfb8::Encryptor<aes::Aes128>;
+pub(super) type Aes128Cfb8Dec = cfb8::Decryptor<aes::Aes128>;
 
 pub struct StreamDecryptor<R: Read> {
     cipher: Aes128Cfb8Dec,
@@ -30,7 +30,7 @@ impl<R: Read> Read for StreamDecryptor<R> {
 }
 
 #[derive(Debug)]
-pub struct AsyncStreamDecryptor<R: AsyncRead + Unpin> {
+pub(super) struct AsyncStreamDecryptor<R: AsyncRead + Unpin> {
     cipher: Aes128Cfb8Dec,
     reader: R,
 }
@@ -70,7 +70,7 @@ impl<R: AsyncRead + Unpin> AsyncRead for AsyncStreamDecryptor<R> {
 ///NOTE: This makes lots of small writes; make sure there is a buffer somewhere down the line
 /// or atleast this is the documentation that came along with the skidded code before i converted it
 /// to synchronous writes
-pub struct StreamEncryptor<W: Write> {
+pub(super) struct StreamEncryptor<W: Write> {
     cipher: Aes128Cfb8Enc,
     writer: W,
     pending: Vec<u8>,
@@ -128,7 +128,7 @@ impl<W: Write> Write for StreamEncryptor<W> {
     }
 }
 
-pub struct AsyncStreamEncryptor<W: AsyncWrite + Unpin> {
+pub(super) struct AsyncStreamEncryptor<W: AsyncWrite + Unpin> {
     cipher: Aes128Cfb8Enc,
     writer: W,
     pending: Vec<u8>,

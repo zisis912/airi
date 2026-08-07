@@ -1,6 +1,5 @@
 use aes::cipher::KeyIvInit;
 use async_compression::{Level, tokio::write::ZlibEncoder};
-use thiserror::Error;
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 
 use crate::{
@@ -9,7 +8,7 @@ use crate::{
     packet_encoder::PacketEncodeError,
 };
 
-pub enum AsyncEncryptionWriter<W: AsyncWrite + Unpin> {
+enum AsyncEncryptionWriter<W: AsyncWrite + Unpin> {
     Encrypt(Box<AsyncStreamEncryptor<W>>),
     None(W),
 }
@@ -78,10 +77,9 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncEncryptionWriter<W> {
 
 /// Encoder: Server -> Client
 /// Supports ZLib endecoding/compression
-/// Supports Aes128 Encryption
+/// Supports Aes128-Cfb8 Encryption
 pub struct AsyncNetworkEncoder<W: AsyncWrite + Unpin> {
     writer: AsyncEncryptionWriter<W>,
-    // compression and compression threshold
     compression: Option<(CompressionThreshold, CompressionLevel)>,
 }
 
@@ -93,15 +91,17 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
         }
     }
 
+    /// Set the zlib compression threshold and compression level of the writer.
     pub fn set_compression(&mut self, compression_info: (CompressionThreshold, CompressionLevel)) {
         self.compression = Some(compression_info);
     }
 
+    /// Enable Aes128-Cfb8 encryption on the writer.
     /// NOTE: Encryption can only be set; a minecraft stream cannot go back to being unencrypted
     pub fn set_encryption(&mut self, key: &[u8; 16]) {
-        if matches!(self.writer, AsyncEncryptionWriter::Encrypt(_)) {
-            panic!("Cannot upgrade a stream that already has a cipher!");
-        }
+        // if matches!(self.writer, AsyncEncryptionWriter::Encrypt(_)) {
+        //     panic!("Cannot upgrade a stream that already has a cipher!");
+        // }
         let cipher = Aes128Cfb8Enc::new_from_slices(key, key).expect("invalid key");
         take_mut::take(&mut self.writer, |encoder| encoder.upgrade(cipher));
     }
@@ -272,7 +272,3 @@ impl<W: AsyncWrite + Unpin> AsyncNetworkEncoder<W> {
         Ok(())
     }
 }
-
-#[derive(Error, Debug)]
-#[error("Invalid compression Level")]
-pub struct CompressionLevelError;
