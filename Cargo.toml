@@ -3,7 +3,9 @@ resolver = "3"
 members = [
     "airi",
     "airi-protocol",
-    "airi-macros", "airi-codegen", "airi-data",
+    "airi-macros",
+    # "airi-codegen",
+    # "airi-data",
 ]
 
 [workspace.package]
