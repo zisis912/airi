@@ -1,34 +1,37 @@
-use std::{iter, mem, sync::Arc};
+use core::time;
+use std::{iter, mem, sync::Arc, time::Instant};
 
 use bytemuck::{Pod, Zeroable};
-use cgmath::{Matrix4, Point3, Vector3, Vector4};
-use image::GenericImageView;
+use cgmath::{Deg, InnerSpace, Matrix4, Point3, Quaternion, Rotation3, Vector3, Vector4, Zero};
 use log::debug;
 use thiserror::Error;
 use wgpu::{
     Backends, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingType, BlendState, BufferBindingType, BufferUsages, Color, ColorTargetState, ColorWrites,
-    CompositeAlphaMode, CurrentSurfaceTexture, ExperimentalFeatures, Face, Features, FragmentState,
-    FrontFace, Instance, InstanceDescriptor, InstanceFlags, Limits, LoadOp, MemoryHints,
-    MultisampleState, Operations, PipelineCompilationOptions, PolygonMode, PowerPreference,
-    PresentMode, PrimitiveState, PrimitiveTopology, RenderPassColorAttachment,
+    BindingType, BlendState, BufferAddress, BufferBindingType, BufferUsages, Color,
+    ColorTargetState, ColorWrites, CompositeAlphaMode, CurrentSurfaceTexture, DepthBiasState,
+    DepthStencilState, ExperimentalFeatures, Face, Features, FragmentState, FrontFace,
+    InstanceDescriptor, InstanceFlags, Limits, LoadOp, MemoryHints, MultisampleState, Operations,
+    PipelineCompilationOptions, PolygonMode, PowerPreference, PresentMode, PrimitiveState,
+    PrimitiveTopology, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
     RenderPassDescriptor, RenderPipeline, RenderPipelineDescriptor, RequestAdapterError,
-    RequestAdapterOptions, RequestDeviceError, ShaderStages, StoreOp, SurfaceColorSpace,
-    TextureSampleType, TextureUsages, TextureViewDescriptor, TextureViewDimension, VertexAttribute,
-    VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+    RequestAdapterOptions, RequestDeviceError, ShaderStages, StencilState, StoreOp,
+    SurfaceColorSpace, TextureFormat, TextureSampleType, TextureUsages, TextureView,
+    TextureViewDescriptor, TextureViewDimension, VertexAttribute, VertexBufferLayout, VertexFormat,
+    VertexState, VertexStepMode,
     util::{BufferInitDescriptor, DeviceExt},
     wgt::{DeviceDescriptor, SurfaceConfiguration},
 };
 use winit::{
     application::ApplicationHandler,
-    event::{KeyEvent, WindowEvent},
+    event::{DeviceEvent, DeviceId, ElementState, KeyEvent, MouseButton, WindowEvent},
     event_loop::ActiveEventLoop,
     keyboard::{KeyCode, PhysicalKey},
     window::Window,
 };
 
-use crate::render::texture::Texture;
+use crate::render::{camera::Camera, texture::Texture};
 
+mod camera;
 mod texture;
 
 #[derive(Error, Debug)]
@@ -43,24 +46,64 @@ pub enum RenderError {
 
 pub struct App {
     state: Option<State>,
+    last_render_time: Instant,
 }
 
-#[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::from_cols(
-    Vector4::new(1.0, 0.0, 0.0, 0.0),
-    Vector4::new(0.0, 1.0, 0.0, 0.0),
-    Vector4::new(0.0, 0.0, 0.5, 0.0),
-    Vector4::new(0.0, 0.0, 0.5, 1.0),
+const NUM_INSTANCES_PER_ROW: u32 = 10;
+const INSTANCE_DISPLACEMENT: Vector3<f32> = Vector3::new(
+    NUM_INSTANCES_PER_ROW as f32 * 0.5,
+    0.0,
+    NUM_INSTANCES_PER_ROW as f32 * 0.5,
 );
 
-struct Camera {
-    eye: Point3<f32>,
-    target: Point3<f32>,
-    up: Vector3<f32>,
-    aspect: f32,
-    fovy: f32,
-    znear: f32,
-    zfar: f32,
+struct Instance {
+    position: Vector3<f32>,
+    rotation: Quaternion<f32>,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct InstanceRaw {
+    model: [[f32; 4]; 4],
+}
+
+impl Instance {
+    fn to_raw(&self) -> InstanceRaw {
+        InstanceRaw {
+            model: (Matrix4::from_translation(self.position) * Matrix4::from(self.rotation)).into(),
+        }
+    }
+}
+
+impl InstanceRaw {
+    fn desc() -> VertexBufferLayout<'static> {
+        VertexBufferLayout {
+            array_stride: mem::size_of::<InstanceRaw>() as BufferAddress,
+            step_mode: VertexStepMode::Instance,
+            attributes: &[
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 0,
+                    shader_location: 5,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 4 * mem::size_of::<f32>() as BufferAddress,
+                    shader_location: 6,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 8 * mem::size_of::<f32>() as BufferAddress,
+                    shader_location: 7,
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: 12 * mem::size_of::<f32>() as BufferAddress,
+                    shader_location: 8,
+                },
+            ],
+        }
+    }
 }
 
 // We need this for Rust to store our data correctly for the shaders
@@ -70,6 +113,7 @@ struct Camera {
 struct CameraUniform {
     // We can't use cgmath with bytemuck directly, so we'll have
     // to convert the Matrix4 into a 4x4 f32 array
+    view_position: [f32; 4],
     view_proj: [[f32; 4]; 4],
 }
 
@@ -77,21 +121,14 @@ impl CameraUniform {
     fn new() -> Self {
         use cgmath::SquareMatrix;
         Self {
+            view_position: [0.0; 4],
             view_proj: Matrix4::identity().into(),
         }
     }
 
-    fn update_view_proj(&mut self, camera: &Camera) {
-        self.view_proj = camera.build_view_projection_matrix().into();
-    }
-}
-
-impl Camera {
-    fn build_view_projection_matrix(&self) -> Matrix4<f32> {
-        let view = Matrix4::look_at_rh(self.eye, self.target, self.up);
-        let proj = cgmath::perspective(cgmath::Deg(self.fovy), self.aspect, self.znear, self.zfar);
-
-        OPENGL_TO_WGPU_MATRIX * proj * view
+    fn update_view_proj(&mut self, camera: &Camera, projection: &camera::Projection) {
+        self.view_position = camera.position.to_homogeneous().into();
+        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into();
     }
 }
 
@@ -109,11 +146,16 @@ pub struct State {
     index_buffer: wgpu::Buffer,
     diffuse_bind_group: wgpu::BindGroup,
     diffuse_texture: Texture,
-    camera: Camera,
+    camera: camera::Camera,
     camera_bind_group: wgpu::BindGroup,
     camera_buffer: wgpu::Buffer,
-    camera_controller: CameraController,
+    camera_controller: camera::CameraController,
+    projection: camera::Projection,
     camera_uniform: CameraUniform,
+    instances: Vec<Instance>,
+    instance_buffer: wgpu::Buffer,
+    depth_texture: Texture,
+    mouse_pressed: bool,
 }
 
 #[repr(C)]
@@ -174,7 +216,7 @@ impl State {
     pub async fn new(window: Arc<Window>) -> Result<State, RenderError> {
         let size = window.inner_size();
 
-        let instance = Instance::new(InstanceDescriptor {
+        let instance = wgpu::Instance::new(InstanceDescriptor {
             // TODO: decide which backend to use
             backends: Backends::PRIMARY,
             flags: InstanceFlags::empty(),
@@ -274,22 +316,13 @@ impl State {
             label: Some("diffuse_bind_group"),
         });
 
-        let camera = Camera {
-            // position the camera 1 unit up and 2 units back
-            // +z is out of the screen
-            eye: (0.0, 1.0, 2.0).into(),
-            // have it look at the origin
-            target: (0.0, 0.0, 0.0).into(),
-            // which way is "up"
-            up: Vector3::unit_y(),
-            aspect: config.width as f32 / config.height as f32,
-            fovy: 45.0,
-            znear: 0.1,
-            zfar: 100.0,
-        };
+        let camera = camera::Camera::new((0.0, 5.0, 10.0), Deg(-90.0), Deg(-20.0));
+        let projection =
+            camera::Projection::new(config.width, config.height, Deg(45.0), 0.1, 100.0);
+        let camera_controller = camera::CameraController::new(0.001, 0.0001);
 
         let mut camera_uniform = CameraUniform::new();
-        camera_uniform.update_view_proj(&camera);
+        camera_uniform.update_view_proj(&camera, &projection);
 
         let camera_buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: Some("Camera Buffer"),
@@ -342,7 +375,7 @@ impl State {
             vertex: VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[Some(Vertex::desc())],
+                buffers: &[Some(Vertex::desc()), Some(InstanceRaw::desc())],
                 compilation_options: PipelineCompilationOptions::default(),
             },
             fragment: Some(FragmentState {
@@ -367,7 +400,13 @@ impl State {
                 // Requires Features::CONSERVATIVE_RASTERIZATION
                 conservative: false,
             },
-            depth_stencil: None,
+            depth_stencil: Some(DepthStencilState {
+                format: texture::Texture::DEPTH_FORMAT,
+                depth_write_enabled: Some(true),
+                depth_compare: Some(wgpu::CompareFunction::Less),
+                stencil: StencilState::default(),
+                bias: DepthBiasState::default(),
+            }),
             multisample: MultisampleState {
                 count: 1,
                 mask: !0,
@@ -392,7 +431,37 @@ impl State {
         let num_vertices = VERTICES.len() as u32;
         let num_indices = INDICES.len() as u32;
 
-        let camera_controller = CameraController::new(0.2);
+        let instances = (0..NUM_INSTANCES_PER_ROW)
+            .flat_map(|z| {
+                (0..NUM_INSTANCES_PER_ROW).map(move |x| {
+                    let position = cgmath::Vector3 {
+                        x: x as f32,
+                        y: 0.0,
+                        z: z as f32,
+                    } - INSTANCE_DISPLACEMENT;
+
+                    let rotation = if position.is_zero() {
+                        // this is needed so an object at (0, 0, 0) won't get scaled to zero
+                        // as Quaternions can affect scale if they're not created correctly
+                        Quaternion::from_axis_angle(Vector3::unit_z(), Deg(0.0))
+                    } else {
+                        Quaternion::from_axis_angle(position.normalize(), Deg(45.0))
+                    };
+
+                    Instance { position, rotation }
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
+        let instance_buffer = device.create_buffer_init(&BufferInitDescriptor {
+            label: Some("Instance Buffer"),
+            contents: bytemuck::cast_slice(&instance_data),
+            usage: BufferUsages::VERTEX,
+        });
+
+        let depth_texture =
+            texture::Texture::create_depth_texture(&device, &config, "depth_texture");
 
         Ok(Self {
             window,
@@ -413,6 +482,11 @@ impl State {
             camera_buffer,
             camera_bind_group,
             camera_controller,
+            instances,
+            instance_buffer,
+            depth_texture,
+            projection,
+            mouse_pressed: false,
         })
     }
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -421,6 +495,9 @@ impl State {
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
             self.is_surface_configured = true;
+            self.depth_texture =
+                texture::Texture::create_depth_texture(&self.device, &self.config, "depth texture");
+            self.projection.resize(width, height);
         }
     }
 
@@ -478,7 +555,14 @@ impl State {
                     store: StoreOp::Store,
                 },
             })],
-            depth_stencil_attachment: None,
+            depth_stencil_attachment: Some(RenderPassDepthStencilAttachment {
+                view: &self.depth_texture.view,
+                depth_ops: Some(wgpu::Operations {
+                    load: LoadOp::Clear(1.0),
+                    store: StoreOp::Store,
+                }),
+                stencil_ops: None,
+            }),
             occlusion_query_set: None,
             timestamp_writes: None,
             multiview_mask: None,
@@ -490,9 +574,11 @@ impl State {
         render_pass.set_bind_group(1, &self.camera_bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
+
         render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
-        render_pass.draw_indexed(0..self.num_indices, 0, 0..1);
+        render_pass.draw_indexed(0..self.num_indices, 0, 0..self.instances.len() as u32);
 
         // submit will accept anything that implements IntoIter
         drop(render_pass);
@@ -501,17 +587,18 @@ impl State {
         Ok(())
     }
 
-    fn handle_key(&mut self, event_loop: &ActiveEventLoop, code: KeyCode, is_pressed: bool) {
-        if let (KeyCode::Escape, true) = (code, is_pressed) {
+    fn handle_key(&mut self, event_loop: &ActiveEventLoop, key: KeyCode, state: ElementState) {
+        if let (KeyCode::Escape, ElementState::Pressed) = (key, state) {
             event_loop.exit()
         } else {
-            self.camera_controller.handle_key(code, is_pressed);
+            self.camera_controller.process_keyboard(key, state);
         }
     }
 
-    fn update(&mut self) {
-        self.camera_controller.update_camera(&mut self.camera);
-        self.camera_uniform.update_view_proj(&self.camera);
+    fn update(&mut self, dt: time::Duration) {
+        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_uniform
+            .update_view_proj(&self.camera, &self.projection);
         self.queue.write_buffer(
             &self.camera_buffer,
             0,
@@ -522,7 +609,10 @@ impl State {
 
 impl App {
     pub async fn new() -> Option<App> {
-        Some(App { state: None })
+        Some(App {
+            state: None,
+            last_render_time: Instant::now(),
+        })
     }
 }
 
@@ -556,7 +646,9 @@ impl ApplicationHandler<State> for App {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
-                state.update();
+                let dt = self.last_render_time.elapsed();
+
+                state.update(dt);
                 match state.render() {
                     Ok(_) => {}
                     Err(e) => {
@@ -566,6 +658,9 @@ impl ApplicationHandler<State> for App {
                     }
                 }
             }
+            WindowEvent::MouseWheel { delta, .. } => {
+                state.camera_controller.handle_mouse_scroll(&delta);
+            }
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -574,82 +669,38 @@ impl ApplicationHandler<State> for App {
                         ..
                     },
                 ..
-            } => state.handle_key(event_loop, code, key_state.is_pressed()),
+            } => state.handle_key(event_loop, code, key_state),
+            WindowEvent::MouseInput {
+                state: element_state,
+                button,
+                ..
+            } => {
+                if button != MouseButton::Left {
+                    return;
+                }
+                state.mouse_pressed = element_state.is_pressed();
+            }
             _ => {}
         }
     }
-}
 
-struct CameraController {
-    speed: f32,
-    is_forward_pressed: bool,
-    is_backward_pressed: bool,
-    is_left_pressed: bool,
-    is_right_pressed: bool,
-}
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        let Some(state) = &mut self.state else {
+            return;
+        };
 
-impl CameraController {
-    fn new(speed: f32) -> Self {
-        Self {
-            speed,
-            is_forward_pressed: false,
-            is_backward_pressed: false,
-            is_left_pressed: false,
-            is_right_pressed: false,
-        }
-    }
-
-    fn handle_key(&mut self, code: KeyCode, is_pressed: bool) -> bool {
-        match code {
-            KeyCode::KeyW | KeyCode::ArrowUp => {
-                self.is_forward_pressed = is_pressed;
-                true
+        match event {
+            DeviceEvent::MouseMotion { delta } => {
+                if state.mouse_pressed {
+                    state.camera_controller.handle_mouse(delta.0, delta.1);
+                }
             }
-            KeyCode::KeyA | KeyCode::ArrowLeft => {
-                self.is_left_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyS | KeyCode::ArrowDown => {
-                self.is_backward_pressed = is_pressed;
-                true
-            }
-            KeyCode::KeyD | KeyCode::ArrowRight => {
-                self.is_right_pressed = is_pressed;
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn update_camera(&self, camera: &mut Camera) {
-        use cgmath::InnerSpace;
-        let forward = camera.target - camera.eye;
-        let forward_norm = forward.normalize();
-        let forward_mag = forward.magnitude();
-
-        // Prevents glitching when the camera gets too close to the
-        // center of the scene.
-        if self.is_forward_pressed && forward_mag > self.speed {
-            camera.eye += forward_norm * self.speed;
-        }
-        if self.is_backward_pressed {
-            camera.eye -= forward_norm * self.speed;
-        }
-
-        let right = forward_norm.cross(camera.up);
-
-        // Redo radius calc in case the forward/backward is pressed.
-        let forward = camera.target - camera.eye;
-        let forward_mag = forward.magnitude();
-
-        if self.is_right_pressed {
-            // Rescale the distance between the target and the eye so
-            // that it doesn't change. The eye, therefore, still
-            // lies on the circle made by the target and eye.
-            camera.eye = camera.target - (forward + right * self.speed).normalize() * forward_mag;
-        }
-        if self.is_left_pressed {
-            camera.eye = camera.target - (forward - right * self.speed).normalize() * forward_mag;
+            _ => {}
         }
     }
 }
