@@ -1,4 +1,5 @@
 use std::{
+    cmp::min,
     io::{self, Read, Write},
     pin::Pin,
     task::{Context, Poll},
@@ -7,6 +8,8 @@ use tokio::io::{AsyncRead, AsyncWrite};
 
 pub(super) type Aes128Cfb8Enc = cfb8::Encryptor<aes::Aes128>;
 pub(super) type Aes128Cfb8Dec = cfb8::Decryptor<aes::Aes128>;
+
+const MAX_ENCRYPT_CHUNK: usize = u16::MAX as usize;
 
 pub struct StreamDecryptor<R: Read> {
     cipher: Aes128Cfb8Dec,
@@ -112,14 +115,18 @@ impl<W: Write> Write for StreamEncryptor<W> {
             return Ok(0);
         }
 
+        // this is how many bytes we will encrypt
+        let chunk_len = min(buf.len(), MAX_ENCRYPT_CHUNK);
+
         // make just enough space for the encrypted bytes, unwrap is safe
-        self.pending.resize(buf.len(), 0);
-        self.cipher.encrypt_b2b(buf, &mut self.pending).unwrap();
+        self.pending.resize(chunk_len, 0);
+        self.cipher
+            .encrypt_b2b(&buf[..chunk_len], &mut self.pending)
+            .unwrap();
 
         self.pending_pos = self.writer.write(&self.pending)?;
 
-        // this is always equal to scratch.len()
-        Ok(buf.len())
+        Ok(chunk_len)
     }
 
     fn flush(&mut self) -> io::Result<()> {
@@ -192,7 +199,8 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncStreamEncryptor<W> {
 
         // load the buf into a Vec<u8> then encrypt in-place
         this.pending.clear();
-        this.pending.extend(buf);
+        let chunk_len = min(buf.len(), MAX_ENCRYPT_CHUNK);
+        this.pending.extend(&buf[0..chunk_len]);
         this.cipher.encrypt(&mut this.pending);
         this.pending_pos = 0;
 
@@ -206,7 +214,7 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncStreamEncryptor<W> {
             Poll::Pending => {}
         };
 
-        Poll::Ready(Ok(buf.len()))
+        Poll::Ready(Ok(chunk_len))
     }
 
     fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
