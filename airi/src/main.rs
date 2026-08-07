@@ -1,13 +1,10 @@
 use std::{collections::HashMap, error::Error, process, time::Duration};
 
 use airi_protocol::{
-    TextComponent, UUID, VarInt, Vec3, nbt,
+    Identifier, TextComponent, UUID, VarInt, Vec3, nbt,
     packet::{
         Intent, PROTOCOL_VERSION, Packet, XorY,
-        c2s::{
-            handshake::Handshake,
-            login::LoginStart,
-        },
+        c2s::{handshake::Handshake, login::LoginStart},
     },
 };
 use log::{debug, warn};
@@ -58,7 +55,7 @@ struct Client {
     sender: Sender<Packet>,
     receiver: Receiver<Packet>,
     entities: HashMap<i32, Entity>,
-    registry: HashMap<String, HashMap<String, Option<nbt::Tag>>>,
+    registry: HashMap<Identifier, HashMap<Identifier, Option<nbt::Tag>>>,
     // tags: HashMap<i32, Entity>,
     // player: Player,
     time: WorldTime,
@@ -190,10 +187,7 @@ impl Client {
             Packet::DisconnectConfiguration(p) => self.disconnect(Some(&p.reason), None),
             Packet::DisconnectPlay(p) => self.disconnect(Some(&p.reason), None),
             Packet::RegistryData(p) => {
-                let registry = self
-                    .registry
-                    .entry(p.registry_id.clone())
-                    .or_default();
+                let registry = self.registry.entry(p.registry_id.clone()).or_default();
 
                 for entry in &p.entries.data {
                     registry.insert(entry.entry_id.clone(), entry.data.clone());

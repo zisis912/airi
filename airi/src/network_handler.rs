@@ -147,7 +147,9 @@ impl NetworkHandler {
             }
             Packet::ClientboundPluginMessageConfiguration(p) => {
                 // TODO: implement enum for the packet
-                if p.channel == "minecraft:register" || p.channel == "minecraft:unregister" {
+                if p.channel.to_string() == "minecraft:register"
+                    || p.channel.to_string() == "minecraft:unregister"
+                {
                     debug!(
                         "s2c message: {:?}",
                         str::from_utf8(&p.data.0)
@@ -156,7 +158,7 @@ impl NetworkHandler {
                             .collect::<Vec<&str>>()
                     )
                 }
-                if p.channel == "minecraft:brand" {
+                if p.channel.to_string() == "minecraft:brand" {
                     debug!("s2c message: {:?}", str::from_utf8(&p.data.0).unwrap())
                 }
             }
@@ -199,7 +201,9 @@ impl NetworkHandler {
     }
 
     fn handle_c2s_internal(&mut self, packet: &Packet) {
-        if let Packet::Handshake(p) = packet { self.state = p.intent.into() }
+        if let Packet::Handshake(p) = packet {
+            self.state = p.intent.into()
+        }
     }
 
     async fn send_packet(&mut self, packet: Packet) {

@@ -493,7 +493,7 @@ impl<T: Serializable> Serializable for Option<T> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Hash, Clone, PartialEq)]
 pub struct Identifier {
     namespace: String,
     path: String,
@@ -538,6 +538,13 @@ impl Identifier {
 
     pub fn with_default_namespace(path: &str) -> Result<Self, IdentifierParseError> {
         Self::new(Self::DEFAULT_NAMESPACE, path)
+    }
+
+    pub fn namespace(&self) -> &str {
+        &self.namespace
+    }
+    pub fn path(&self) -> &str {
+        &self.path
     }
 }
 

@@ -85,14 +85,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "airi-codegen"
-version = "0.1.0"
-
-[[package]]
-name = "airi-data"
-version = "0.1.0"
-
-[[package]]
 name = "airi-macros"
 version = "0.1.0"
 dependencies = [
