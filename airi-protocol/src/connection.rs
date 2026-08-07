@@ -192,8 +192,9 @@ impl<W: AsyncWrite + Unpin> AsyncWrite for AsyncStreamEncryptor<W> {
 
         // load the buf into a Vec<u8> then encrypt in-place
         this.pending.clear();
-        this.pending.extend_from_slice(buf);
+        this.pending.extend(buf);
         this.cipher.encrypt(&mut this.pending);
+        this.pending_pos = 0;
 
         // write some bytes now, keep the rest in pending for later
         let writer = Pin::new(&mut this.writer);

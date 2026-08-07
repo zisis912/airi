@@ -535,6 +535,10 @@ impl Identifier {
 
         Ok(ident)
     }
+
+    pub fn with_default_namespace(path: &str) -> Result<Self, IdentifierParseError> {
+        Self::new(Self::DEFAULT_NAMESPACE, path)
+    }
 }
 
 impl Display for Identifier {
