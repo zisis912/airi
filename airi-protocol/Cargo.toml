@@ -22,5 +22,5 @@ cfb8.workspace = true
 flate2.workspace = true
 thiserror.workspace = true
 take_mut.workspace = true
-tokio = { workspace = true, features = ["io-util"] }
+tokio = { workspace = true, features = ["io-util","fs"] }
 async-compression = { workspace = true, features = ["tokio", "zlib"] }

@@ -18,6 +18,7 @@ use tokio::{
 use winit::event_loop::EventLoop;
 
 use crate::{
+    asset_gen::get_assets,
     auth::AuthError,
     entity::Entity,
     logger::init_logger,
@@ -26,6 +27,7 @@ use crate::{
     world_types::{Waypoint, WorldTime},
 };
 
+mod asset_gen;
 mod auth;
 mod entity;
 mod logger;
@@ -39,14 +41,15 @@ const PORT: u16 = 30000;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     init_logger().unwrap();
-    // todo: check if this dep is needed
-    // env_logger::init();
+
+    // get_assets().await;
 
     let address = format!("{}:{}", HOST, PORT);
     let stream = TcpStream::connect(address).await?;
     stream.set_nodelay(false)?; //disable nagle
 
     debug!("connected to server");
+
     Client::new(stream).await.start().await?;
     Ok(())
 }
@@ -64,9 +67,9 @@ struct Client {
 
 impl Client {
     async fn new(tcp_stream: TcpStream) -> Self {
-        let (s2c_send, s2c_recv) = mpsc::channel(128);
-        let (c2s_send, c2s_recv) = mpsc::channel(128);
-        let mut network_handler = NetworkHandler::new(tcp_stream, c2s_recv, s2c_send, None);
+        let (receive_tx, receive_rx) = mpsc::channel(128);
+        let (send_tx, send_rx) = mpsc::channel(128);
+        let mut network_handler = NetworkHandler::new(tcp_stream, send_rx, receive_tx, None);
 
         // network thread
         let _ = tokio::spawn(async move {
@@ -74,8 +77,8 @@ impl Client {
         });
 
         Client {
-            sender: c2s_send,
-            receiver: s2c_recv,
+            sender: send_tx,
+            receiver: receive_rx,
             entities: HashMap::new(),
             registry: HashMap::new(),
             // tags: HashMap::new(),
@@ -91,7 +94,7 @@ impl Client {
         // send handshake packets
         self.sender
             .send(Packet::Handshake(Handshake {
-                server_adress: HOST.to_owned(),
+                server_address: HOST.to_owned(),
                 server_port: PORT,
                 protocol_version: VarInt(PROTOCOL_VERSION),
                 intent: Intent::Login,
@@ -130,8 +133,7 @@ impl Client {
     fn client_tick(&self) {}
 
     fn login(&self) -> Result<(), AuthError> {
-        // set self.profile to Some()
-        Ok(())
+        unimplemented!()
     }
 
     fn disconnect(&self, reason: Option<&TextComponent>, r2: Option<&String>) {

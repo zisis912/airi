@@ -1,68 +1,146 @@
-use std::{collections::HashMap, env, path::Path};
+use std::{collections::HashMap, env, path::Path, ptr::hash};
 
 use futures::{StreamExt, stream};
+use indicatif::{ProgressBar, ProgressStyle};
+use log::info;
 use reqwest::Client;
 use serde::Deserialize;
-use tokio::{fs::{self, File, OpenOptions}, io::AsyncWriteExt};
+use sha1::{Digest, Sha1};
+use tokio::{
+    fs::{self, File, OpenOptions},
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 
 const ASSET_INDEX: &'static str =
-    "https://piston-meta.mojang.com/v1/packages/a1b7ed58f78f7f8e9248c3e5d4ec6726189e278c/27.json";
-
-const ASSET_SERVER: &'static str = "https://resources.download.minecraft.net";
+    "https://api.github.com/repos/InventivetalentDev/minecraft-assets/git/trees/26.2?recursive=1";
 
 #[derive(Deserialize)]
-struct AssetIndexResponse {
-    objects: HashMap<String, AssetHash>,
+struct GithubTreeResponse {
+    // sha: String,
+    // url: String,
+    tree: Vec<TreeEntry>,
 }
 
 #[derive(Deserialize)]
-struct AssetHash {
-    hash: String,
-    size: i32,
+struct TreeEntry {
+    path: String,
+    sha: String,
+    #[serde(default)]
+    url: String,
+    #[serde(rename = "type")]
+    item_type: String,
+    // size: i32,
+    // mode: String,
 }
 
-async fn _main() {
-    let out_path = env::var("OUT_DIR").unwrap();
-    let out_dir = Path::new(&out_path).join("assets/");
+pub async fn get_assets() {
+    let base_dirs = directories::BaseDirs::new().expect("couldn't retrieve user home directory");
+    let data_dir = base_dirs.data_local_dir();
 
-    if fs::metadata(out_dir.join("dl-lock")).await.is_ok() {
-        return;
-    }
+    let asset_dir = Path::new(data_dir).join("airi/");
 
+    info!("pulling mc asset index from github");
     let client = Client::new();
-    let res: AssetIndexResponse = client
+    let res = client
         .get(ASSET_INDEX)
+        .header("Accept", "application/vnd.github+json")
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0",
+        )
         .send()
         .await
         .expect("web request failed")
-        .json::<AssetIndexResponse>()
+        .json::<GithubTreeResponse>()
         .await
         .expect("json deserialize failed");
 
-    stream::iter(res.objects)
-        .map(|(asset_name, AssetHash { hash, size })| {
-            let client = client.clone();
+    info!("validating hashes of assets");
+    let needs_dl: Vec<(&String, &String)> = stream::iter(&res.tree)
+        .filter_map(
+            async |TreeEntry {
+                       path,
+                       sha,
+                       url,
+                       item_type,
+                   }| {
+                if item_type != "blob" {
+                    return None;
+                }
 
-            let url = format!("{}/{}/{}", ASSET_SERVER, &hash[..2], hash);
-            let path = out_dir.join(asset_name);
+                let filepath = asset_dir.join(&path);
 
-            async move { download_file(&client, url, &path).await.unwrap() }
-        })
-        .buffer_unordered(200)
-        .for_each(|_| async {})
+                if !filepath.exists() {
+                    return Some((path, url));
+                }
+
+                let mut buf = Vec::new();
+
+                let mut file = File::options().read(true).open(filepath).await.unwrap();
+                file.read_to_end(&mut buf).await.unwrap();
+
+                if Sha1::digest(&buf).as_slice() == hex::decode(sha).unwrap() {
+                    return None;
+                }
+                Some((path, url))
+            },
+        )
+        .collect()
         .await;
 
-    // if everything is successful, add a final file
-    tokio::fs::write(out_dir.join("dl-lock"),&[]).await.unwrap();
+    info!("downloading {} missing assets", needs_dl.len());
+
+    let style = ProgressStyle::with_template(
+        "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+    )
+    .unwrap()
+    .progress_chars("##-");
+    let bar = ProgressBar::new(needs_dl.len() as u64).with_style(style);
+    bar.set_message("Downloading Assets");
+
+    stream::iter(needs_dl)
+        .map(async |(asset_name, url)| {
+            let client = client.clone();
+            let filepath = asset_dir.join(asset_name);
+
+            match download_file(&client, url.to_owned(), &filepath).await {
+                Ok(()) => bar.inc(1),
+                Err(e) => {
+                    eprintln!("download of {} failed: {}", asset_name, e);
+                    bar.dec_length(1);
+                }
+            }
+        })
+        .buffer_unordered(64)
+        // .for_each(|_| async {})
+        .collect::<Vec<_>>()
+        .await;
 }
 
 async fn download_file(client: &Client, url: String, path: &Path) -> Result<(), reqwest::Error> {
-    let bytes = client.get(url).send().await?.bytes().await.unwrap();
+    let bytes = client
+        .get(url)
+        .header("Accept", "application/vnd.github+json")
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:153.0) Gecko/20100101 Firefox/153.0",
+        )
+        .send()
+        .await?
+        .bytes()
+        .await?;
 
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).await.unwrap();
+        fs::create_dir_all(parent)
+            .await
+            .expect("failed to create file tree");
     }
-    let mut file = OpenOptions::new().write(true).create_new(true).open(path).await.unwrap();
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(path)
+        .await
+        .expect("couldnt open file for download");
     file.write(&bytes).await.unwrap();
 
     Ok(())

@@ -7,11 +7,15 @@
 //! # Example Usage
 //!
 //! ```
-//! let mut writer: File = //...
-//! let aes_key: [u8;16] = //...
+//! use airi_protocol::{NetworkEncoder, NetworkDecoder, Packet, VarInt, RawPacket};
+//! use airi_protocol::packet::c2s::handshake::Handshake;
+//! use airi_protocol::packet::{Intent, Direction, State, packet_by_id};
+//!
+//! let mut buf = Vec::new();
+//! let aes_key: [u8;16] = [77;16]; // random key
 //!
 //! // Create an encoder in order to serialize packets
-//! let encoder = NetworkEncoder::new(&mut writer);
+//! let mut encoder = NetworkEncoder::new(&mut buf);
 //!
 //! // Apply encryption and/or compression to the encoder
 //! encoder.set_encryption(&aes_key);
@@ -20,16 +24,32 @@
 //! let mut payload = Vec::new();
 //!
 //! // Prepare packet payload
-//! Packet::Handshake(Handshake {
+//! let handshake_packet = Packet::Handshake(Handshake {
 //!     protocol_version: VarInt(773),
 //!     server_address: "localhost".to_owned(),
 //!     server_port: 25565,
 //!     intent: Intent::Login,
-//! }).write(&mut payload)?;
+//! });
+//! handshake_packet.write(&mut payload).unwrap();
 //!
 //! // Send the payload to the writer.
 //! // It will be encrypted and compressed.
 //! encoder.write_packet(&payload);
+//!
+//! // Create decoder in order to deserialize packets
+//! let mut decoder = NetworkDecoder::new(&buf[..]);
+//!
+//! // Enable compression and encryption on the decoder
+//! decoder.set_encryption(&aes_key);
+//! decoder.set_compression(256);
+//!
+//! // We can now read a packet from the buffer, and it will be the same.
+//! let RawPacket {id, payload} = decoder.get_raw_packet().unwrap();
+//! let decoded_packet = packet_by_id(State::Handshake,Direction::Serverbound,id,&mut
+//! payload.as_slice()).unwrap();
+//!
+//! assert!(matches!(decoded_packet,Packet::Handshake(_)))
+//!
 //! ```
 //!
 

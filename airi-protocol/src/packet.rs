@@ -67,26 +67,8 @@ macro_rules! state_packets {
             }
         }
 
-        /// Reads a packet from a reader, given its id, `State` and `Direction`.
-        ///
-        /// # Examples
-        ///
-        /// ```
-        /// let mut payload = Vec::new();
-        ///
-        /// let packet1 = Handshake {
-        ///     protocol_version: VarInt(773),
-        ///     server_address: "localhost".to_owned(),
-        ///     server_port: 25565,
-        ///     intent: Intent::Login,
-        /// };
-        ///
-        /// packet1.write_to(&mut payload)?;
-        ///
-        /// let mut packet2 = packet_by_id(State::Handshake, Direction::Serverbound, Handshake::ID, &mut &payload)?;
-        ///
-        /// assert_eq!(packet1.server_address,packet2.server_address)
-        /// ```
+        /// Reads a packet from a buffer, given its id, `State` and `Direction`. The data in `buf`
+        /// must be in clear form (no encryption/compression). See the main page for usage examples.
         pub fn packet_by_id<R: io::Read>(state: State, dir: Direction, id: i32, buf: &mut R) -> Result<Packet, ReadingError> {
             // println!("{:?} {:?} {:?}",state,dir,id);
             Ok(match dir {
@@ -143,7 +125,7 @@ state_packets! {
         Handshake handshake {
             Handshake "intention" {
                 protocol_version VarInt
-                server_adress String
+                server_address String
                 server_port u16
                 intent Intent
             }
