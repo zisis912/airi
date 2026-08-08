@@ -136,7 +136,7 @@ pub fn derive_serializable(input: proc_macro::TokenStream) -> proc_macro::TokenS
                 if let Some(new_idx) = variant.attrs.iter().find_map(|attr| {
                     if attr.path().is_ident("enum_idx") {
                         let value: LitInt = attr.parse_args().expect("expected int");
-                        Some(value.base10_parse::<usize>().unwrap());
+                        return Some(value.base10_parse::<usize>().unwrap());
                     }
                     Option::<usize>::None
                 }) {

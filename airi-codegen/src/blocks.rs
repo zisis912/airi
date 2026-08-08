@@ -24,6 +24,7 @@ pub fn build() -> TokenStream {
     let mut block_variants = Vec::new();
     let mut property_structs = Vec::new();
     let mut state_enums = Vec::new();
+    let mut struct_impls = Vec::new();
 
     let block_state_id = 0;
 
@@ -54,7 +55,7 @@ pub fn build() -> TokenStream {
                 let candidate = if n == 0 {
                     property.clone()
                 } else {
-                    format!("{}{}", property, n)
+                    format!("{}{}", property, variant_name)
                 };
                 entries.push((states.clone(), candidate.clone()));
 
@@ -86,7 +87,14 @@ pub fn build() -> TokenStream {
             .iter()
             .map(|(property, states)| iter::repeat(property).zip(states))
             .multi_cartesian_product()
-        {}
+        {
+            let struct_impl = quote! {
+
+                // impl
+            };
+
+            struct_impls.push(struct_impl)
+        }
     }
 
     quote! {
@@ -97,7 +105,13 @@ pub fn build() -> TokenStream {
         #(#property_structs)*
 
         #(#state_enums)*
+
+        #(#struct_impls)*
     }
+}
+
+pub trait BlockType {
+    fn block_state_id(&self) -> u16;
 }
 
 fn increment_str(str: &mut String) {
