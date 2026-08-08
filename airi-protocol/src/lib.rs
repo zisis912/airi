@@ -1,4 +1,4 @@
-//! This library exposes a full Rust API implementation of the [Minecraft Java Edition Network
+//! `airi-protocol` exposes a full Rust API implementation of the [Minecraft Java Edition Network
 //! Protocol](https://minecraft.wiki/w/Java_Edition_protocol/Packets).
 //!
 //! It includes every known data type and packet, as well as wrappers over the encryption/compression
