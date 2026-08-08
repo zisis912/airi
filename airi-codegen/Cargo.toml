@@ -7,3 +7,11 @@ repository.workspace = true
 readme.workspace = true
 
 [dependencies]
+quote.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["preserve_order"]}
+proc-macro2.workspace = true
+indexmap = { version = "2.14.0", features = ["serde"]}
+heck.workspace = true
+itertools = "0.15.0"
+syn.workspace = true

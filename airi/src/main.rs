@@ -13,6 +13,7 @@ use tokio::{
     net::TcpStream,
     select,
     sync::mpsc::{self, Receiver, Sender},
+    task::spawn_blocking,
     time,
 };
 use winit::event_loop::EventLoop;
@@ -21,7 +22,6 @@ use crate::{
     asset_gen::get_assets,
     auth::AuthError,
     entity::Entity,
-    logger::init_logger,
     network_handler::NetworkHandler,
     render::App,
     world_types::{Waypoint, WorldTime},
@@ -30,7 +30,6 @@ use crate::{
 mod asset_gen;
 mod auth;
 mod entity;
-mod logger;
 mod network_handler;
 mod render;
 mod world_types;
@@ -40,9 +39,10 @@ const PORT: u16 = 30000;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    init_logger().unwrap();
+    env_logger::init();
 
-    // get_assets().await;
+    // tokio is fucking stupid
+    spawn_blocking(|| get_assets()).await.unwrap();
 
     let address = format!("{}:{}", HOST, PORT);
     let stream = TcpStream::connect(address).await?;

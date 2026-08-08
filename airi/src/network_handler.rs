@@ -16,7 +16,6 @@ use airi_protocol::{
     },
 };
 use log::{debug, trace};
-use log::{info, log};
 use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8::DecodePublicKey, rand_core::RngCore};
 use tokio::{
     io::{BufReader, BufWriter},
@@ -87,10 +86,11 @@ impl NetworkHandler {
     }
 
     async fn handle_s2c_internal(&mut self, packet: &Packet) {
-        info!("{:?}", packet);
+        trace!("{:?}", packet);
 
         match packet {
             Packet::EncryptionRequest(p) => {
+                // this is a very old version of rand
                 let mut rng = rsa::rand_core::OsRng;
 
                 let server_public_key = RsaPublicKey::from_public_key_der(&p.public_key.data)
@@ -148,20 +148,7 @@ impl NetworkHandler {
             }
             Packet::ClientboundPluginMessageConfiguration(p) => {
                 // TODO: implement enum for the packet
-                if p.channel.to_string() == "minecraft:register"
-                    || p.channel.to_string() == "minecraft:unregister"
-                {
-                    debug!(
-                        "s2c message: {:?}",
-                        str::from_utf8(&p.data.0)
-                            .unwrap()
-                            .split("\u{0000}")
-                            .collect::<Vec<&str>>()
-                    )
-                }
-                if p.channel.to_string() == "minecraft:brand" {
-                    debug!("s2c message: {:?}", str::from_utf8(&p.data.0).unwrap())
-                }
+                // or dont idk
             }
             Packet::ClientboundKnownPacks(p) => {
                 self.send_packet_now(ServerboundKnownPacks {
@@ -212,7 +199,7 @@ impl NetworkHandler {
     }
 
     async fn send_packet(&mut self, packet: Packet) {
-        info!("{:?}", packet);
+        trace!("{:?}", packet);
 
         let mut packet_buf = Vec::new();
         packet.write(&mut packet_buf).unwrap();
@@ -220,7 +207,7 @@ impl NetworkHandler {
     }
 
     async fn send_packet_now<P: PacketType>(&mut self, packet: P) {
-        info!("{:?}", packet);
+        trace!("{:?}", packet);
 
         let mut packet_buf = Vec::new();
         packet.write(&mut packet_buf).unwrap();

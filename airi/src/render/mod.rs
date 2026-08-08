@@ -3,7 +3,7 @@ use std::{iter, mem, sync::Arc, time::Instant};
 
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Deg, InnerSpace, Matrix4, Point3, Quaternion, Rotation3, Vector3, Vector4, Zero};
-use log::debug;
+use log::{debug, error};
 use thiserror::Error;
 use wgpu::{
     Backends, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
@@ -169,23 +169,23 @@ const VERTICES: &[Vertex] = &[
     Vertex {
         position: [-0.0868241, 0.49240386, 0.0],
         tex_coords: [0.4131759, 0.00759614],
-    }, // A
+    },
     Vertex {
         position: [-0.49513406, 0.06958647, 0.0],
         tex_coords: [0.0048659444, 0.43041354],
-    }, // B
+    },
     Vertex {
         position: [-0.21918549, -0.44939706, 0.0],
         tex_coords: [0.28081453, 0.949397],
-    }, // C
+    },
     Vertex {
         position: [0.35966998, -0.3473291, 0.0],
         tex_coords: [0.85967, 0.84732914],
-    }, // D
+    },
     Vertex {
         position: [0.44147372, 0.2347359, 0.0],
         tex_coords: [0.9414737, 0.2652641],
-    }, // E
+    },
 ];
 
 //pentagon
@@ -319,7 +319,7 @@ impl State {
         let camera = camera::Camera::new((0.0, 5.0, 10.0), Deg(-90.0), Deg(-20.0));
         let projection =
             camera::Projection::new(config.width, config.height, Deg(45.0), 0.1, 100.0);
-        let camera_controller = camera::CameraController::new(0.001, 0.0001);
+        let camera_controller = camera::CameraController::new(4.0, 0.4);
 
         let mut camera_uniform = CameraUniform::new();
         camera_uniform.update_view_proj(&camera, &projection);
@@ -647,13 +647,14 @@ impl ApplicationHandler<State> for App {
             WindowEvent::Resized(size) => state.resize(size.width, size.height),
             WindowEvent::RedrawRequested => {
                 let dt = self.last_render_time.elapsed();
+                self.last_render_time = Instant::now();
 
                 state.update(dt);
                 match state.render() {
                     Ok(_) => {}
                     Err(e) => {
                         // Log the error and exit gracefully
-                        log::error!("{e}");
+                        error!("{e}");
                         event_loop.exit();
                     }
                 }

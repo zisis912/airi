@@ -90,7 +90,7 @@ impl Serializable for Item {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Component {
     CustomData {
         data: nbt::Tag,
@@ -364,7 +364,7 @@ pub enum Component {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Rarity {
     Common,
     Uncommon,
@@ -394,7 +394,7 @@ pub struct Property {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(bool, 0)]
+#[enum_info(bool)]
 pub enum PropertyMatch {
     RangedMatch { min: String, max: String },
     ExactMatch(String),
@@ -410,7 +410,7 @@ pub struct PartialDataComponentMatcher {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum PartialDataComponentMatcherType {
     Damage,
     Enchantments,
@@ -438,7 +438,7 @@ pub struct AttributeModifier {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum AttributeOperation {
     Add,
     MultiplyBase,
@@ -446,7 +446,7 @@ pub enum AttributeOperation {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum AttributeModifierSlot {
     Any,
     MainHand,
@@ -461,7 +461,7 @@ pub enum AttributeModifierSlot {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ConsumeAnimation {
     None,
     Eat,
@@ -482,7 +482,7 @@ pub struct SoundEvent {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ConsumeEffect {
     ApplyEffects {
         effects: PrefixedArray<PotionEffect>,
@@ -525,7 +525,7 @@ pub struct ToolRule {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum EquippableSlot {
     Mainhand,
     Feet,
@@ -570,7 +570,7 @@ impl Serializable for ColorI32 {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum MapPostProcessingType {
     Lock,
     Scale,
@@ -626,14 +626,14 @@ pub struct JukeboxSong {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum ProvidesTrimMaterialMode {
     Identifier(Identifier),
     IdOr(IdOrX<TrimMaterial>),
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum JukeboxPlayable {
     Identifier(Identifier),
     IdOr(IdOrX<JukeboxSong>),
@@ -649,7 +649,7 @@ pub struct FireworkExplosion {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum FireworkExplosionShape {
     SmallBall,
     LargeBall,
@@ -671,7 +671,7 @@ pub struct BannerLayerData {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum DyeColor {
     White,
     Orange,
@@ -705,14 +705,14 @@ pub struct Bee {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum FoxVariant {
     Red,
     Snow,
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum SalmonSize {
     Small,
     Medium,
@@ -720,7 +720,7 @@ pub enum SalmonSize {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum TropicalFishPattern {
     Kob,
     Sunstreak,
@@ -737,14 +737,14 @@ pub enum TropicalFishPattern {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum MooshroomVariant {
     Red,
     Brown,
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum RabbitVariant {
     Brown,
     White,
@@ -756,14 +756,14 @@ pub enum RabbitVariant {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum ChickenVariant {
     Identifier(Identifier),
     Id(VarInt),
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum HorseVariant {
     White,
     Creamy,
@@ -784,7 +784,7 @@ pub struct PaintingVariant {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum LlamaVariant {
     Creamy,
     White,
@@ -793,7 +793,7 @@ pub enum LlamaVariant {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum AxolotlVariant {
     Lucy,
     Wild,

@@ -13,7 +13,7 @@ jsonwebtoken = { workspace = true, features = ["rust_crypto","use_pem"]}
 log.workspace = true
 # we use rsa rand_core for rand behavior since we dont need it anywhere else
 # rand = "0.10.2"
-reqwest = { workspace = true, features = ["json"]}
+reqwest = { workspace = true, features = ["json","blocking"]}
 rsa.workspace = true
 serde = { workspace=true, features = ["derive"] }
 serde_json.workspace = true
@@ -32,3 +32,4 @@ directories = "6.0.0"
 hex.workspace = true
 indicatif = "0.18.6"
 zip = "8.6.0"
+env_logger = "0.11.11"

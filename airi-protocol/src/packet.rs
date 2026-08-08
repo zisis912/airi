@@ -804,7 +804,9 @@ state_packets! {
             ChunkDataAndUpdateLight "level_chunk_with_light" {
                 chunk_x i32
                 chunk_z i32
-                data ChunkData
+                heightmaps PrefixedArray<HeightMap>
+                data LenPrefixedBytes<VarInt>
+                block_entities PrefixedArray<BlockEntity>
                 light LightData
             }
             WorldEvent "level_event" {
@@ -1263,8 +1265,9 @@ state_packets! {
 }
 
 #[derive(Serializable, Debug, Clone, Copy)]
-#[enum_info(u8, 1)]
+#[enum_info(u8)]
 pub enum Intent {
+    #[enum_idx(1)]
     Status,
     Login,
     Transfer,
@@ -1325,14 +1328,14 @@ pub struct ServerLink {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(bool, 0)]
+#[enum_info(bool)]
 pub enum LinkLabel {
     TextComponent(TextComponent),
     Label(LinkLabelEnum),
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum LinkLabelEnum {
     BugReport,
     CommunityGuidelines,
@@ -1347,7 +1350,7 @@ pub enum LinkLabelEnum {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ChatMode {
     Enabled,
     CommandsOnly,
@@ -1367,14 +1370,14 @@ pub struct SkinParts {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum MainHand {
     Left,
     Right,
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ParticleStatus {
     All,
     Decreased,
@@ -1382,7 +1385,7 @@ pub enum ParticleStatus {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ResourcePackResult {
     SuccessfullyDownloaded,
     Declined,
@@ -1395,7 +1398,7 @@ pub enum ResourcePackResult {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(u8, 0)]
+#[enum_info(u8)]
 pub enum Animation {
     SwingMainArm,
     UNREACHABLE, // TODO: properly define this without derive macro
@@ -1412,7 +1415,7 @@ pub struct StatisticEntry {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Statistic {
     Mined { block: VarInt },
     Crafted { item: VarInt },
@@ -1426,7 +1429,7 @@ pub enum Statistic {
 }
 
 #[derive(Serializable, Debug)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum CustomStatistic {
     LeaveGame,
     PlayTime,
@@ -1506,7 +1509,7 @@ pub enum CustomStatistic {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum BossAction {
     Add {
         title: TextComponent,
@@ -1532,7 +1535,7 @@ pub enum BossAction {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ColorId {
     Pink,
     Blue,
@@ -1544,7 +1547,7 @@ pub enum ColorId {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum DivisionType {
     NoDivision,
     SixNotches,
@@ -1562,7 +1565,7 @@ pub struct BossActionFlags {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(u8, 0)]
+#[enum_info(u8)]
 pub enum Difficulty {
     Peaceful,
     Easy,
@@ -1710,7 +1713,7 @@ pub enum NodeInfo {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Parser {
     BrigadierBool,
     BrigadierFloat(BrigadierNumOptions<f32>),
@@ -1846,7 +1849,7 @@ impl<T: Serializable + Bounded + PartialEq + Copy> Serializable for BrigadierNum
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum BrigadierStringOptions {
     SingleWord,
     QuotablePhrase,
@@ -1897,7 +1900,7 @@ pub struct MinecraftResourceSelectorOptions {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ChatSuggestionAction {
     Add,
     Remove,
@@ -1905,7 +1908,7 @@ pub enum ChatSuggestionAction {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum DebugSampleType {
     TickTime,
 }
@@ -1924,7 +1927,7 @@ pub struct ChatTypeDecorations {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ChatTypeParameters {
     Sender,
     Target,
@@ -1932,7 +1935,7 @@ pub enum ChatTypeParameters {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Particle {
     AngryVillager,
     Block {
@@ -2120,7 +2123,7 @@ impl Serializable for ColorARGBI32 {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum VibrationData {
     Block {
         block_position: Position,
@@ -2129,13 +2132,6 @@ pub enum VibrationData {
         entity_id: VarInt,
         entity_eye_height: f32,
     },
-}
-
-#[derive(Debug, Serializable)]
-pub struct ChunkData {
-    pub heightmaps: PrefixedArray<HeightMap>,
-    pub data: LenPrefixedBytes<VarInt>,
-    pub block_entities: PrefixedArray<BlockEntity>,
 }
 
 #[derive(Debug, Serializable)]
@@ -2168,8 +2164,18 @@ impl Serializable for PackedXZ {
 
 #[derive(Debug, Serializable)]
 pub struct HeightMap {
-    pub ty: VarInt,
+    pub ty: HeightMapType,
     pub data: PrefixedArray<i64>,
+}
+
+#[derive(Debug, Serializable)]
+#[enum_info(VarInt)]
+pub enum HeightMapType {
+    #[enum_idx(1)]
+    WorldSurface,
+    #[enum_idx(4)]
+    MotionBlocking,
+    MotionBlockingNoLeaves,
 }
 
 #[derive(Debug, Serializable)]
@@ -2277,14 +2283,14 @@ pub struct MinecartStep {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum Hand {
     Main,
     Offhand,
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum RecipeDisplay {
     CraftingShapeless {
         ingredients: PrefixedArray<SlotDisplay>,
@@ -2321,7 +2327,7 @@ pub enum RecipeDisplay {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum SlotDisplay {
     Empty,
     AnyFuel,
@@ -2354,7 +2360,7 @@ pub struct PlayerAbilitiesFlags {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ChatMessageFilterType {
     PassThrough,
     FullyFiltered,
@@ -2526,7 +2532,7 @@ pub struct InitializeChatData {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum FeetEyes {
     Feet,
     Eyes,
@@ -2613,7 +2619,7 @@ pub struct EntityMetadatum {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum EntityMetadatumValue {
     // 0
     Byte(i8),
@@ -2715,7 +2721,7 @@ pub struct EquipmentEntry {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum EquipmentSlot {
     MainHand,
     Offhand,
@@ -2728,7 +2734,7 @@ pub enum EquipmentSlot {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum ObjectiveMode {
     Create(ObjectiveData),
     Remove,
@@ -2743,14 +2749,14 @@ pub struct ObjectiveData {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ObjectiveType {
     Integer,
     Hearts,
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ObjectiveNumberFormat {
     Blank,
     Styled { styling: nbt::Tag },
@@ -2758,7 +2764,7 @@ pub enum ObjectiveNumberFormat {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(i8, 0)]
+#[enum_info(i8)]
 pub enum TeamMethod {
     Create {
         info: TeamInfo,
@@ -2950,7 +2956,7 @@ pub struct ChangedSlot {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum InteractionType {
     Interact,
     Attack,
@@ -2977,7 +2983,7 @@ pub struct PlayerInput {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum SeenAdvancementsAction {
     OpenedTab { tab_id: Identifier },
     ClosedScreen,
@@ -2991,7 +2997,7 @@ pub struct GameProfile {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum DebugSubscriptionUpdate {
     DedicatedServerTickTime,
     Bee(DebugBeeData),
@@ -3156,7 +3162,7 @@ pub struct ResolvableProfile {
 }
 
 #[derive(Debug, Serializable)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum ResolvableProfileUnpack {
     Partial {
         username: Option<String>,
@@ -3167,14 +3173,14 @@ pub enum ResolvableProfileUnpack {
 }
 
 #[derive(Debug, Serializable, PartialEq, Eq, Hash, Clone)]
-#[enum_info(bool, 0)]
+#[enum_info(bool)]
 pub enum XorY<X: Serializable, Y: Serializable> {
     Y(Y),
     X(X),
 }
 
 #[derive(Debug, Serializable, Clone)]
-#[enum_info(VarInt, 0)]
+#[enum_info(VarInt)]
 pub enum WaypointData {
     Empty,
     Vec3i(Vec3<VarInt>),

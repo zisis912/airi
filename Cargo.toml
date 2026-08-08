@@ -4,8 +4,8 @@ members = [
     "airi",
     "airi-protocol",
     "airi-macros",
-    # "airi-codegen",
-    # "airi-data",
+    "airi-codegen",
+    "airi-data",
 ]
 
 [workspace.package]
@@ -17,6 +17,8 @@ readme = "README.md"
 [workspace.dependencies]
 airi-protocol = { path = "airi-protocol", version = "0.1.0"}
 airi-macros = { path = "airi-macros", version="0.1.0" }
+airi-codegen = { path = "airi-codegen", version="0.1.0" }
+airi-data = { path = "airi-data", version="0.1.0" }
 
 byteorder = "1.5.0"
 serde_json = "1.0.151"
