@@ -1,11 +1,13 @@
-// Vertex shader
+// Uniform Buffer
 
 struct Camera {
-    view_pos: vec4<f32>,
+    view_pos: vec4<f32>, // useless
     view_proj: mat4x4<f32>,
 }
 
 @group(1) @binding(0) var<uniform> camera: Camera;
+
+// Vertex shader
 
 struct VertexInput {
     @location(0)

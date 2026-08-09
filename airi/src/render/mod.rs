@@ -128,7 +128,7 @@ impl CameraUniform {
 
     fn update_view_proj(&mut self, camera: &Camera, projection: &camera::Projection) {
         self.view_position = camera.position.to_homogeneous().into();
-        self.view_proj = (projection.calc_matrix() * camera.calc_matrix()).into();
+        self.view_proj = (projection.calc_matrix() * camera.calc_view_matrix()).into();
     }
 }
 
@@ -434,7 +434,7 @@ impl State {
         let instances = (0..NUM_INSTANCES_PER_ROW)
             .flat_map(|z| {
                 (0..NUM_INSTANCES_PER_ROW).map(move |x| {
-                    let position = cgmath::Vector3 {
+                    let position = Vector3 {
                         x: x as f32,
                         y: 0.0,
                         z: z as f32,

@@ -36,7 +36,7 @@ impl Camera {
         }
     }
 
-    pub fn calc_matrix(&self) -> Matrix4<f32> {
+    pub fn calc_view_matrix(&self) -> Matrix4<f32> {
         let (sin_pitch, cos_pitch) = self.pitch.0.sin_cos();
         let (sin_yaw, cos_yaw) = self.yaw.0.sin_cos();
 
