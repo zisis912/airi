@@ -12,7 +12,7 @@ members = [
 edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/zisis912/airi"
-readme = "README.md"
+# readme = "README.md"
 
 [workspace.dependencies]
 airi-protocol = { path = "airi-protocol", version = "0.1.0"}
