@@ -108,7 +108,7 @@ pub trait PacketType: Serializable + Debug {
 
     /// Write the packet's ID as a VarInt, then the packet itself into `buf`.
     ///
-    /// `PacketType::write()` and `Packet::write()` should be **heavily** preferred
+    /// [`PacketType::write()`] and [`Packet::write()`] should be **heavily** preferred
     /// over using `Serializable::write_to()` on the underlying packet data types,
     /// since there will never be a scenario where you need to write a packet without
     /// preceding it with its ID.

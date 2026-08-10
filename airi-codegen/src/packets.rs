@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-use std::fs::File;
 
 use heck::ToShoutySnekCase;
 use proc_macro2::TokenStream;
@@ -7,9 +6,8 @@ use quote::format_ident;
 use quote::quote;
 
 pub fn build() -> TokenStream {
-    let packets_file = File::open("airi-codegen/assets/packets.json").unwrap();
     let packet_data: IndexMap<String, IndexMap<String, IndexMap<String, i32>>> =
-        serde_json::from_reader(packets_file).unwrap();
+        serde_json::from_slice(include_bytes!("../assets/packets.json")).unwrap();
 
     // packet -> (dir,state,id)
     let mut seen_packets: IndexMap<String, (String, String, i32)> = IndexMap::new();

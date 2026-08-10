@@ -15,9 +15,9 @@ repository = "https://github.com/zisis912/airi"
 # readme = "README.md"
 
 [workspace.dependencies]
-airi-protocol = { path = "airi-protocol", version = "0.1.0"}
+airi-protocol = { path = "airi-protocol", version = "1.0.0"}
 airi-macros = { path = "airi-macros", version="0.1.0" }
-airi-codegen = { path = "airi-codegen", version="0.1.0" }
+airi-codegen = { path = "airi-codegen", version="0.1.1" }
 airi-data = { path = "airi-data", version="0.1.0" }
 
 byteorder = "1.5.0"

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, iter};
+use std::{collections::HashMap, iter};
 
 use heck::ToPascalCase;
 use indexmap::IndexMap;
@@ -7,10 +7,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 pub fn build() -> TokenStream {
-    // panic!("{:?}", std::env::current_dir());
-    let file = File::open("./airi-codegen/assets/block_properties.json").unwrap();
     let block_properties: IndexMap<String, IndexMap<String, Vec<String>>> =
-        serde_json::from_reader(file).unwrap();
+        serde_json::from_slice(include_bytes!("../assets/block_properties.json")).unwrap();
 
     let mut block_variants = Vec::new();
     let mut property_structs = Vec::new();

@@ -82,6 +82,7 @@ pub mod text_component;
 pub use async_packet_decoder::AsyncNetworkDecoder;
 pub use async_packet_encoder::AsyncNetworkEncoder;
 pub use packet::Packet;
+pub use packet::PacketType;
 pub use packet::packet_by_id;
 pub use packet_decoder::NetworkDecoder;
 pub use packet_encoder::NetworkEncoder;

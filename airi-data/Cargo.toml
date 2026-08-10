@@ -1,9 +1,11 @@
 [package]
 name = "airi-data"
 version = "0.1.0"
+description = "compile-time registries for airi"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 
 [dependencies]
 airi-macros.workspace = true
