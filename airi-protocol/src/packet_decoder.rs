@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Error, Debug)]
 pub enum PacketDecodeError {
-    #[error("{0}")]
+    #[error(transparent)]
     IoError(#[from] io::Error),
     #[error("failed to decode packet ID")]
     DecodeID,
@@ -28,13 +28,15 @@ pub enum PacketDecodeError {
     NotCompressed,
     #[error("the connection has closed")]
     ConnectionClosed,
+    #[error("Reading Error: {0}")]
+    ReadingError(#[from] ReadingError),
 }
 
-impl From<ReadingError> for PacketDecodeError {
-    fn from(value: ReadingError) -> Self {
-        Self::FailedDecompression(value.to_string())
-    }
-}
+// impl From<ReadingError> for PacketDecodeError {
+//     fn from(value: ReadingError) -> Self {
+//         Self::FailedDecompression(value.to_string())
+//     }
+// }
 
 /// Wrapper type over an implementor of [`std::io::Read`]. Provides the [`get_raw_packet`]
 /// method, used to read a raw minecraft packet (id and payload) from an encrypted/compressed

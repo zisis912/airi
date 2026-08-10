@@ -9,7 +9,8 @@ Full implementation of the [Minecraft Java Edition Network Protocol Spec](https:
 ## Version table
 | Crate Version | Minecraft Protocol Version |
 | --- | --- |
-| 0.x.x | [1.21.10 / 773](https://minecraft.wiki/w/Java_Edition_protocol/Packets?oldid=3657983) |
+| >=0.1.3 | [26.2 / 776](https://minecraft.wiki/w/Java_Edition_protocol/Packets?oldid=3713873) |
+| 0.1.2 | [1.21.10 / 773](https://minecraft.wiki/w/Java_Edition_protocol/Packets?oldid=3657983) |
 
 ## Tests
 

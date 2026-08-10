@@ -1,24 +1,15 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs::File,
-    io::Read,
-    iter,
-    path::Path,
-    process,
-};
+use std::{collections::HashMap, fs::File, iter};
 
 use heck::ToPascalCase;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt, format_ident, quote};
-use serde::Deserialize;
-use serde_json::Map;
+use quote::{format_ident, quote};
 
 pub fn build() -> TokenStream {
     // panic!("{:?}", std::env::current_dir());
     let file = File::open("./airi-codegen/assets/block_properties.json").unwrap();
-    let mut block_properties: IndexMap<String, IndexMap<String, Vec<String>>> =
+    let block_properties: IndexMap<String, IndexMap<String, Vec<String>>> =
         serde_json::from_reader(file).unwrap();
 
     let mut block_variants = Vec::new();
@@ -26,7 +17,7 @@ pub fn build() -> TokenStream {
     let mut state_enums = Vec::new();
     let mut struct_impls = Vec::new();
 
-    let block_state_id = 0;
+    let _block_state_id = 0;
 
     // property base name -> Vec<(states, assigned_enum_name)>
     let mut seen_properties: HashMap<String, Vec<(Vec<String>, String)>> = HashMap::new();
@@ -75,7 +66,7 @@ pub fn build() -> TokenStream {
 
             let state_enum_name = format_ident!("{}", assigned_name.to_pascal_case());
 
-            let property2 = if property == "type" { "ty" } else { &property };
+            let property2 = if property == "type" { "ty" } else { property };
             let property_ident = format_ident!("{}", property2);
             struct_fields.push(quote! { #property_ident: #state_enum_name });
         }
@@ -83,7 +74,7 @@ pub fn build() -> TokenStream {
         property_structs.push(quote! { struct #struct_name { #(#struct_fields),*} });
 
         // used for block ids
-        for product in properties
+        for _product in properties
             .iter()
             .map(|(property, states)| iter::repeat(property).zip(states))
             .multi_cartesian_product()
@@ -112,15 +103,4 @@ pub fn build() -> TokenStream {
 
 pub trait BlockType {
     fn block_state_id(&self) -> u16;
-}
-
-fn increment_str(str: &mut String) {
-    let last_char = str.pop().unwrap();
-    match last_char {
-        '2'..='8' => str.push((last_char as u8 + 1) as char),
-        c => {
-            str.push(c);
-            str.push('2');
-        }
-    }
 }

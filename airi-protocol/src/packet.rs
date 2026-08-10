@@ -10,15 +10,14 @@ use crate::slot::Slot;
 
 use super::*;
 use airi_macros::Serializable;
-use airi_macros::get_entry;
 
-pub const PROTOCOL_VERSION: i32 = 773;
+pub const PROTOCOL_VERSION: i32 = 776;
 
 macro_rules! state_packets {
     (
         $($dirName:ident $dir:ident {
             $($stateName:ident $state:ident {
-                $($(#[$attr:meta])*$packet:ident $resource_id:literal {
+                $($(#[$attr:meta])*$packet:ident $resource_id:ident {
                     $($(#[$fattr:meta])*$field:ident $ty:ty)*
                 })*
             })+
@@ -33,6 +32,7 @@ macro_rules! state_packets {
                 use crate::*;
                 use packet::*;
                 use slot::*;
+                use airi_data::packets::*;
                 $(
 
 
@@ -43,7 +43,7 @@ macro_rules! state_packets {
                     }
 
                     impl PacketType for $packet {
-                        const ID: i32 = get_entry!($state,$dirName,$resource_id);
+                        const ID: i32 = airi_data::packets::$resource_id;
                     }
                 )*
                 }
@@ -123,7 +123,7 @@ pub trait PacketType: Serializable + Debug {
 state_packets! {
     Serverbound c2s {
         Handshake handshake {
-            Handshake "intention" {
+            Handshake INTENTION {
                 protocol_version VarInt
                 server_address String
                 server_port u16
@@ -131,32 +131,32 @@ state_packets! {
             }
         }
         Status status {
-            StatusRequest "status_request" {}
-            PingRequestStatus "ping_request" {
+            StatusRequest STATUS_REQUEST {}
+            PingRequestStatus PING_REQUEST_STATUS {
                 timestamp i64
             }
         }
         Login login {
-            LoginStart "hello" {
+            LoginStart SERVERBOUND_HELLO {
                 name String
                 player_uuid UUID
             }
-            EncryptionResponse "key" {
+            EncryptionResponse KEY {
                 shared_secret LenPrefixedBytes<VarInt>
                 verify_token LenPrefixedBytes<VarInt>
             }
-            LoginPluginResponse "custom_query_answer" {
+            LoginPluginResponse CUSTOM_QUERY_ANSWER {
                 message_id VarInt
                 data UnsizedBytes
             }
-            LoginAcknowledged "login_acknowledged" {}
-            CookieResponseLogin "cookie_response" {
+            LoginAcknowledged LOGIN_ACKNOWLEDGED {}
+            CookieResponseLogin COOKIE_RESPONSE {
                 key Identifier
                 payload Option<LenPrefixedBytes<VarInt>>
             }
         }
         Configuration configuration {
-            ClientInformationConfiguration "client_information" {
+            ClientInformationConfiguration CLIENT_INFORMATION_CONFIGURATION {
                 locale String
                 view_distance i8
                 chat_mode ChatMode
@@ -167,52 +167,52 @@ state_packets! {
                 allow_server_listings bool
                 particle_status ParticleStatus
             }
-            CookieResponseConfiguration "cookie_response" {
+            CookieResponseConfiguration COOKIE_RESPONSE_CONFIGURATION {
                 key Identifier
                 payload Option<LenPrefixedBytes<VarInt>>
             }
-            ServerboundPluginMessageConfiguration "custom_payload" {
+            ServerboundPluginMessageConfiguration SERVERBOUND_CUSTOM_PAYLOAD_CONFIGURATION {
                 channel Identifier
                 data UnsizedBytes
             }
-            AcknowledgeFinishConfiguration "finish_configuration" {}
-            ServerboundKeepAliveConfiguration "keep_alive" {
+            AcknowledgeFinishConfiguration SERVERBOUND_FINISH_CONFIGURATION {}
+            ServerboundKeepAliveConfiguration SERVERBOUND_KEEP_ALIVE_CONFIGURATION {
                 keep_alive_id i64
             }
-            PongConfiguration "pong" {
+            PongConfiguration PONG_CONFIGURATION {
                 id i32
             }
-            ResourcePackResponseConfiguration "resource_pack" {
+            ResourcePackResponseConfiguration RESOURCE_PACK_CONFIGURATION {
                 uuid UUID
                 result ResourcePackResult
             }
-            ServerboundKnownPacks "select_known_packs" {
+            ServerboundKnownPacks SERVERBOUND_SELECT_KNOWN_PACKS {
                 known_packs PrefixedArray<KnownPack>
             }
-            CustomClickActionConfiguration "accept_code_of_conduct" {}
+            CustomClickActionConfiguration ACCEPT_CODE_OF_CONDUCT {}
         }
         Play play {
-            ConfirmTeleportation "accept_teleportation" {
+            ConfirmTeleportation ACCEPT_TELEPORTATION {
                 teleport_id VarInt
             }
-            QueryBlockEntityTag "block_entity_tag_query" {
+            QueryBlockEntityTag BLOCK_ENTITY_TAG_QUERY {
                 transaction_id VarInt
                 location Position
             }
-            BundleItemSelected "bundle_item_selected" {
+            BundleItemSelected BUNDLE_ITEM_SELECTED {
                 slot_of_bundle VarInt
                 slot_in_bundle VarInt
             }
-            ChangeDifficultyServerbound "change_difficulty" {
+            ChangeDifficultyServerbound SERVERBOUND_CHANGE_DIFFICULTY {
                 new_difficulty Difficulty
             }
-            AcknowledgeMessage "chat_ack" {
+            AcknowledgeMessage CHAT_ACK {
                 message_count VarInt
             }
-            ChatCommand "chat_command" {
+            ChatCommand CHAT_COMMAND {
                 command String
             }
-            SignedChatCommand "chat_command_signed" {
+            SignedChatCommand CHAT_COMMAND_SIGNED {
                 command String
                 timestamp i64
                 salt u64
@@ -221,7 +221,7 @@ state_packets! {
                 acknowledged FixedBitSet<20>
                 checksum u8
             }
-            ChatMessage "chat" {
+            ChatMessage CHAT {
                 message String
                 timestamp i64
                 salt u64
@@ -231,21 +231,21 @@ state_packets! {
                 acknowledged FixedBitSet<20>
                 checksum u8
             }
-            PlayerSession "chat_session_update" {
+            PlayerSession CHAT_SESSION_UPDATE {
                 session_id UUID
                 // public key info
                 expires_at i64
                 public_key LenPrefixedBytes<VarInt>
                 key_signature LenPrefixedBytes<VarInt>
             }
-            ChunkBatchReceived "chunk_batch_received" {
+            ChunkBatchReceived CHUNK_BATCH_RECEIVED {
                 chunks_per_tick f32
             }
-            ClientStatus "client_command" {
+            ClientStatus CLIENT_COMMAND {
                 action_id VarInt
             }
-            ClientTickEnd "client_tick_end" {}
-            ClientInformationPlay "client_information" {
+            ClientTickEnd CLIENT_TICK_END {}
+            ClientInformationPlay CLIENT_INFORMATION_PLAY {
                 locale String
                 view_distance i8
                 chat_mode ChatMode
@@ -256,16 +256,16 @@ state_packets! {
                 allow_server_listings bool
                 particle_status ParticleStatus
             }
-            CommandSuggestionsRequest "command_suggestion" {
+            CommandSuggestionsRequest COMMAND_SUGGESTION {
                 transaction_id VarInt
                 text String
             }
-            AcknowledgeConfiguration "configuration_acknowledged" {}
-            ClickContainerButton "container_button_click" {
+            AcknowledgeConfiguration CONFIGURATION_ACKNOWLEDGED {}
+            ClickContainerButton CONTAINER_BUTTON_CLICK {
                 window_id VarInt
                 button_id VarInt
             }
-            ClickContainer "container_click" {
+            ClickContainer CONTAINER_CLICK {
                 window_id VarInt
                 state_id VarInt
                 slot i16
@@ -274,57 +274,57 @@ state_packets! {
                 changed_slots PrefixedArray<ChangedSlot>
                 carried_item HashedSlot
             }
-            CloseContainerServerbound "container_close" {
+            CloseContainerServerbound SERVERBOUND_CONTAINER_CLOSE {
                 window_id VarInt
             }
-            ChangeContainerSlotState "container_slot_state_changed" {
+            ChangeContainerSlotState CONTAINER_SLOT_STATE_CHANGED {
                 slot_id VarInt
                 window_id VarInt
                 state bool
             }
-            CookieResponsePlay "cookie_response" {
+            CookieResponsePlay COOKIE_RESPONSE_PLAY {
                 key Identifier
                 payload Option<LenPrefixedBytes<VarInt>>
             }
-            ServerboundPluginMessagePlay "custom_payload" {
+            ServerboundPluginMessagePlay SERVERBOUND_CUSTOM_PAYLOAD_PLAY {
                 channel Identifier
                 data UnsizedBytes
             }
-            DebugSampleSubscription "debug_subscription_request" {
+            DebugSampleSubscription DEBUG_SUBSCRIPTION_REQUEST {
                 subscriptions PrefixedArray<VarInt>
             }
-            EditBook "edit_book" {
+            EditBook EDIT_BOOK {
                 slot VarInt
                 entries PrefixedArray<String>
                 title Option<String>
             }
-            QueryEntityTag "entity_tag_query" {
+            QueryEntityTag ENTITY_TAG_QUERY {
                 transaction_id VarInt
                 entity_id VarInt
             }
-            Interact "interact" {
+            Interact INTERACT {
                 entity_id VarInt
                 interaction InteractionType
                 sneak_key_pressed bool
             }
-            JigsawGenerate "jigsaw_generate" {
+            JigsawGenerate JIGSAW_GENERATE {
                 location Position
                 levels VarInt
                 keep_jigsaws bool
             }
-            ServerboundKeepAlivePlay "keep_alive" {
+            ServerboundKeepAlivePlay SERVERBOUND_KEEP_ALIVE_PLAY {
                 keep_alive_id i64
             }
-            LockDifficulty "lock_difficulty" {
+            LockDifficulty LOCK_DIFFICULTY {
                 locked bool
             }
-            SetPlayerPosition "move_player_pos" {
+            SetPlayerPosition MOVE_PLAYER_POS {
                 x f64
                 feet_y f64
                 z f64
                 flags MovePlayerFlags
             }
-            SetPlayerPositionAndRotation "move_player_pos_rot" {
+            SetPlayerPositionAndRotation MOVE_PLAYER_POS_ROT {
                 x f64
                 feet_y f64
                 z f64
@@ -332,105 +332,105 @@ state_packets! {
                 pitch f32
                 flags MovePlayerFlags
             }
-            SetPlayerRotation "move_player_rot" {
+            SetPlayerRotation MOVE_PLAYER_ROT {
                 yaw f32
                 pitch f32
                 flags MovePlayerFlags
             }
-            SetPlayerMovementFlags "move_player_status_only" {
+            SetPlayerMovementFlags MOVE_PLAYER_STATUS_ONLY {
                 flags MovePlayerFlags
             }
-            MoveVehicleServerbound "move_vehicle" {
+            MoveVehicleServerbound SERVERBOUND_MOVE_VEHICLE {
                 pos Vec3<f64>
                 yaw f32
                 pitch f32
                 on_ground bool
             }
-            PaddleBoat "paddle_boat" {
+            PaddleBoat PADDLE_BOAT {
                 left_padle_turning bool
                 right_padle_turning bool
             }
-            PickItemFromBlock "pick_item_from_block" {
+            PickItemFromBlock PICK_ITEM_FROM_BLOCK {
                 location Position
                 include_data bool
             }
-            PickItemFromEntity "pick_item_from_entity" {
+            PickItemFromEntity PICK_ITEM_FROM_ENTITY {
                 entity_id VarInt
                 include_data bool
             }
-            PingRequestPlay "ping_request" {
+            PingRequestPlay PING_REQUEST_PLAY {
                 payload i64
             }
-            PlaceReciple "place_recipe" {
+            PlaceReciple PLACE_RECIPE {
                 window_id VarInt
                 recipe_id VarInt
                 make_all bool
             }
-            PlayerAbilitiesServerbound "player_abilities" {
+            PlayerAbilitiesServerbound SERVERBOUND_PLAYER_ABILITIES {
                 flags u8 // TODO: bitmask struct
             }
-            PlayerAction "player_action" {
+            PlayerAction PLAYER_ACTION {
                 status VarInt
                 location Position
                 face i8
                 sequence VarInt
             }
-            PlayerCommand "player_command" {
+            PlayerCommand PLAYER_COMMAND {
                 entity_id VarInt
                 action_id VarInt // TODO: ENUM
                 jump_boost VarInt
             }
-            PlayerInputServerbound "player_input" {
+            PlayerInputServerbound PLAYER_INPUT {
                 flags PlayerInput
             }
-            PlayerLoaded "player_loaded" {}
-            PongPlay "pong" {
+            PlayerLoaded PLAYER_LOADED {}
+            PongPlay PONG_PLAY {
                 id i32
             }
-            ChangeRecipeBookSettings "recipe_book_change_settings" {
+            ChangeRecipeBookSettings RECIPE_BOOK_CHANGE_SETTINGS {
                 book_id VarInt
                 book_open bool
                 filter_active bool
             }
-            SetSeenRecipe "recipe_book_seen_recipe" {
+            SetSeenRecipe RECIPE_BOOK_SEEN_RECIPE {
                 recipe_id VarInt
             }
-            RenameItem "rename_item" {
+            RenameItem RENAME_ITEM {
                 item_name String
             }
-            ResourcePackResponsePlay "resource_pack" {
+            ResourcePackResponsePlay RESOURCE_PACK_PLAY {
                 uuid UUID
                 result ResourcePackResult
             }
-            SeenAdvancements "seen_advancements" {
+            SeenAdvancements SEEN_ADVANCEMENTS {
                 action SeenAdvancementsAction
             }
-            SelectTrade "select_trade" {
+            SelectTrade SELECT_TRADE {
                 selected_slot VarInt
             }
-            SetBeaconEffect "set_beacon" {
+            SetBeaconEffect SET_BEACON {
                 primary_effect Option<VarInt>
                 secondary_effect Option<VarInt>
             }
-            SetHeldItemServerbound "set_carried_item" {
+            SetHeldItemServerbound SET_CARRIED_ITEM {
                 slot i16
             }
-            ProgramCommandBlock "set_command_block" {
+            ProgramCommandBlock SET_COMMAND_BLOCK {
                 location Position
                 command String
                 mode VarInt
                 flags u8
             }
-            ProgramCommandBlockMinecart "set_command_minecart" {
+            ProgramCommandBlockMinecart SET_COMMAND_MINECART {
                 entity_id VarInt
                 command String
                 track_output bool
             }
-            SetCreativeModeSlot "set_creative_mode_slot" {
+            SetCreativeModeSlot SET_CREATIVE_MODE_SLOT {
                 slot i16
                 clicked_item Slot
             }
-            ProgramJigsawBlock "set_jigsaw_block" {
+            ProgramJigsawBlock SET_JIGSAW_BLOCK {
                 location Position
                 name Identifier
                 target Identifier
@@ -440,7 +440,7 @@ state_packets! {
                 selection_priority VarInt
                 placement_priority VarInt
             }
-            ProgramStructureBlock "set_structure_block" {
+            ProgramStructureBlock SET_STRUCTURE_BLOCK {
                 location Position
                 action VarInt
                 mode VarInt
@@ -454,12 +454,12 @@ state_packets! {
                 seed VarLong
                 flags u8
             }
-            SetTestBlock "set_test_block" {
+            SetTestBlock SET_TEST_BLOCK {
                 position Position
                 mode VarInt
                 message String
             }
-            UpdateSign "sign_update" {
+            UpdateSign SIGN_UPDATE {
                 location Position
                 is_front_text bool
                 line1 String
@@ -467,13 +467,13 @@ state_packets! {
                 line3 String
                 line4 String
             }
-            SwingArm "swing" {
+            SwingArm SWING {
                 hand Hand
             }
-            TeleportToEntity "teleport_to_entity" {
+            TeleportToEntity TELEPORT_TO_ENTITY {
                 target_player UUID
             }
-            TestInstanceBlockAction "test_instance_block_action" {
+            TestInstanceBlockAction TEST_INSTANCE_BLOCK_ACTION {
                 position Position
                 action VarInt
                 test Option<Identifier>
@@ -483,7 +483,7 @@ state_packets! {
                 status VarInt
                 error_message Option<TextComponent>
             }
-            UseItemOn "use_item_on" {
+            UseItemOn USE_ITEM_ON {
                 hand Hand
                 location Position
                 face VarInt
@@ -492,13 +492,13 @@ state_packets! {
                 world_border_hit bool
                 sequence VarInt
             }
-            UseItem "use_item" {
+            UseItem USE_ITEM {
                 hand Hand
                 sequence VarInt
                 yaw f32
                 pitch f32
             }
-            CustomClickActionPlay "custom_click_action" {
+            CustomClickActionPlay CUSTOM_CLICK_ACTION_PLAY {
                 id Identifier
                 payload nbt::Tag
             }
@@ -506,106 +506,107 @@ state_packets! {
     }
     Clientbound s2c {
         Status status {
-            StatusResponse "status_response" {
+            StatusResponse STATUS_RESPONSE {
                 json_response String
             }
-            PongResponseStatus "pong_response" {
+            PongResponseStatus PONG_RESPONSE_STATUS {
                 timestamp i64
             }
         }
         Login login {
-            LoginDisconnect "login_disconnect" {
+            LoginDisconnect LOGIN_DISCONNECT {
                 reason JsonTextComponent
             }
-            EncryptionRequest "hello" {
+            EncryptionRequest CLIENTBOUND_HELLO {
                 /// Always empty when sent by the vanilla server.
                 server_id String
                 public_key LenPrefixedBytes<VarInt>
                 verify_token LenPrefixedBytes<VarInt>
                 should_authenticate bool
             }
-            LoginSuccess "login_finished" {
+            LoginSuccess LOGIN_FINISHED {
                 profile GameProfile
+                session_id UUID
             }
-            SetCompression "login_compression" {
+            SetCompression LOGIN_COMPRESSION {
                 theshold VarInt
             }
-            LoginPluginRequest "custom_query" {
+            LoginPluginRequest CUSTOM_QUERY {
                 message_id VarInt
                 channel Identifier
                 data UnsizedBytes
             }
-            CookieRequestLogin "cookie_request" {
+            CookieRequestLogin COOKIE_REQUEST {
                 key Identifier
             }
         }
         Configuration configuration {
-            CookieRequestConfiguration "cookie_request" {
+            CookieRequestConfiguration COOKIE_REQUEST_CONFIGURATION {
                 key Identifier
             }
-            ClientboundPluginMessageConfiguration "custom_payload" {
+            ClientboundPluginMessageConfiguration CLIENTBOUND_CUSTOM_PAYLOAD_CONFIGURATION {
                 channel Identifier
                 data UnsizedBytes
             }
-            DisconnectConfiguration "disconnect" {
+            DisconnectConfiguration DISCONNECT_CONFIGURATION {
                 reason TextComponent
             }
-            FinishConfiguration "finish_configuration" {}
-            ClientboundKeepAliveConfiguration "keep_alive" {
+            FinishConfiguration CLIENTBOUND_FINISH_CONFIGURATION {}
+            ClientboundKeepAliveConfiguration CLIENTBOUND_KEEP_ALIVE_CONFIGURATION {
                 keep_alive_id i64
             }
-            PingConfiguration "ping" {
+            PingConfiguration PING_CONFIGURATION {
                 id i32
             }
-            ResetChat "reset_chat" {}
-            RegistryData "registry_data" {
+            ResetChat RESET_CHAT {}
+            RegistryData REGISTRY_DATA {
                 registry_id Identifier
                 entries PrefixedArray<RegistryEntry>
             }
-            RemoveResourcePackConfiguration "resource_pack_pop" {
+            RemoveResourcePackConfiguration RESOURCE_PACK_POP_CONFIGURATION {
                 uuid Option<UUID>
             }
-            AddResourcePackConfiguration "resource_pack_push" {
+            AddResourcePackConfiguration RESOURCE_PACK_PUSH_CONFIGURATION {
                 uuid UUID
                 url String
                 hash String
                 forced bool
                 prompt_message Option<TextComponent>
             }
-            StoreCookieConfiguration "store_cookie" {
+            StoreCookieConfiguration STORE_COOKIE_CONFIGURATION {
                 key Identifier
                 payload LenPrefixedBytes<VarInt>
             }
-            TransferConfiguration "transfer" {
+            TransferConfiguration TRANSFER_CONFIGURATION {
                 host String
                 port VarInt
             }
-            FeatureFlags "update_enabled_features" {
+            FeatureFlags UPDATE_ENABLED_FEATURES {
                 feature_flags PrefixedArray<Identifier>
             }
-            UpdateTagsConfiguration "update_tags" {
+            UpdateTagsConfiguration UPDATE_TAGS_CONFIGURATION {
                 tags PrefixedArray<Tags>
             }
-            ClientboundKnownPacks "select_known_packs" {
+            ClientboundKnownPacks CLIENTBOUND_SELECT_KNOWN_PACKS {
                 known_packs PrefixedArray<KnownPack>
             }
-            CustomReportDetailsConfiguration "custom_report_details" {
+            CustomReportDetailsConfiguration CUSTOM_REPORT_DETAILS_CONFIGURATION {
                 details PrefixedArray<ReportDetail>
             }
-            ServerLinksConfiguration "server_links" {
+            ServerLinksConfiguration SERVER_LINKS_CONFIGURATION {
                 links PrefixedArray<ServerLink>
             }
-            ClearDialogConfiguration "clear_dialog" {}
-            ShowDialogConfiguration "show_dialog" {
+            ClearDialogConfiguration CLEAR_DIALOG_CONFIGURATION {}
+            ShowDialogConfiguration SHOW_DIALOG_CONFIGURATION {
                 dialog nbt::Tag
             }
-            CodeOfConduct "code_of_conduct" {
+            CodeOfConduct CODE_OF_CONDUCT {
                 code_of_conduct String
             }
         }
         Play play {
-            BundleDelimiter "bundle_delimiter" {}
-            SpawnEntity "add_entity" {
+            BundleDelimiter BUNDLE_DELIMITER {}
+            SpawnEntity ADD_ENTITY {
                 entity_id VarInt
                 entity_uuid UUID
                 ty VarInt
@@ -616,143 +617,143 @@ state_packets! {
                 head_yaw Angle
                 data VarInt
             }
-            EntityAnimation "animate" {
+            EntityAnimation ANIMATE {
                 entity_id VarInt
                 animation Animation
             }
-            AwardStatistics "award_stats" {
+            AwardStatistics AWARD_STATS {
                 statistics PrefixedArray<StatisticEntry>
             }
-            AcknowledgeBlockChange "block_changed_ack" {
+            AcknowledgeBlockChange BLOCK_CHANGED_ACK {
                 sequence_id VarInt
             }
-            SetBlockDestroyStage "block_destruction" {
+            SetBlockDestroyStage BLOCK_DESTRUCTION {
                 entity_id VarInt
                 location Position
                 destroy_stage u8
             }
-            BlockEntityData "block_entity_data" {
+            BlockEntityData BLOCK_ENTITY_DATA {
                 location Position
                 ty VarInt
                 nbt nbt::Tag
             }
-            BlockAction "block_event" {
+            BlockAction BLOCK_EVENT {
                 location Position
                 action_id u8
                 action_parameter u8
                 block_type VarInt
             }
-            BlockUpdate "block_update" {
+            BlockUpdate BLOCK_UPDATE {
                 location Position
                 block_state_id VarInt
             }
-            BossBar "boss_event" {
+            BossBar BOSS_EVENT {
                 uuid UUID
                 action BossAction
             }
-            ChangeDifficultyClientbound "change_difficulty" {
+            ChangeDifficultyClientbound CLIENTBOUND_CHANGE_DIFFICULTY {
                 difficulty Difficulty
                 difficulty_locked bool
             }
-            ChunkBatchFinished "chunk_batch_finished" {
+            ChunkBatchFinished CHUNK_BATCH_FINISHED {
                 batch_size VarInt
             }
-            ChunkBatchStart "chunk_batch_start" {}
-            ChunkBiomes "chunks_biomes" {
+            ChunkBatchStart CHUNK_BATCH_START {}
+            ChunkBiomes CHUNKS_BIOMES {
                 chunk_biome_data PrefixedArray<ChunkBiomeData>
             }
-            ClearTitles "clear_titles" {
+            ClearTitles CLEAR_TITLES {
                 reset bool
             }
-            CommandSuggestionsResponse "command_suggestions" {
+            CommandSuggestionsResponse COMMAND_SUGGESTIONS {
                 id VarInt
                 start VarInt
                 length VarInt
                 matches PrefixedArray<CommandSuggestionMatch>
             }
-            Commands "commands" {
+            Commands COMMANDS {
                 nodes PrefixedArray<Node>
                 root_index VarInt
             }
-            CloseContainerClientbound "container_close" {
+            CloseContainerClientbound CLIENTBOUND_CONTAINER_CLOSE {
                 window_id VarInt
             }
-            SetContainerContent "container_set_content" {
+            SetContainerContent CONTAINER_SET_CONTENT {
                 window_id VarInt
                 state_id VarInt
                 slot_data PrefixedArray<Slot>
                 carried_item Slot
             }
-            SetContainerProperty "container_set_data" {
+            SetContainerProperty CONTAINER_SET_DATA {
                 window_id VarInt
                 property i16
                 value i16
             }
-            SetContainerSlot "container_set_slot" {
+            SetContainerSlot CONTAINER_SET_SLOT {
                 window_id VarInt
                 state_id VarInt
                 slot i16
                 slot_data Slot
             }
-            CookieRequest "cookie_request" {
+            CookieRequest COOKIE_REQUEST_PLAY {
                 key Identifier
             }
-            SetCooldown "cooldown" {
+            SetCooldown COOLDOWN {
                 cooldown_group Identifier
                 cooldown_ticks VarInt
             }
-            ChatSuggestions "custom_chat_completions" {
+            ChatSuggestions CUSTOM_CHAT_COMPLETIONS {
                 action ChatSuggestionAction
                 entries PrefixedArray<String>
             }
-            ClientboundPluginMessagePlay "custom_payload" {
+            ClientboundPluginMessagePlay CLIENTBOUND_CUSTOM_PAYLOAD_PLAY {
                 channel Identifier
                 data UnsizedBytes
             }
-            DamageEvent "damage_event" {
+            DamageEvent DAMAGE_EVENT {
                 entity_id VarInt
                 source_type_id VarInt
                 source_cause_id VarInt
                 source_direct_id VarInt
                 source_position Option<Vec3<f64>>
             }
-            DebugBlockValue "debug/block_value" {
+            DebugBlockValue DEBUG_BLOCK_VALUE {
                 location Position
                 update DebugSubscriptionUpdate
             }
-            DebugChunkValue "debug/chunk_value" {
+            DebugChunkValue DEBUG_CHUNK_VALUE {
                 chunk_x i32
                 chunk_z i32
                 update DebugSubscriptionUpdate
             }
-            DebugEntityValue "debug/entity_value" {
+            DebugEntityValue DEBUG_ENTITY_VALUE {
                 entity_id VarInt
                 upate DebugSubscriptionUpdate
             }
-            DebugEvent "debug/event" {
+            DebugEvent DEBUG_EVENT {
                 event DebugSubscriptionUpdate
             }
-            DebugSample "debug_sample" {
+            DebugSample DEBUG_SAMPLE {
                 sample PrefixedArray<i64>
                 sample_type DebugSampleType
             }
-            DeleteMessage "delete_chat" {
+            DeleteMessage DELETE_CHAT {
                 message_id_or_signature IdOrX<UnsizedBytes>
             }
-            DisconnectPlay "disconnect" {
+            DisconnectPlay DISCONNECT_PLAY {
                 reason TextComponent
             }
-            DisguisedChatMessage "disguised_chat" {
+            DisguisedChatMessage DISGUISED_CHAT {
                 message TextComponent
                 chat_type IdOrX<ChatType>
                 sender_name TextComponent
                 target_name Option<TextComponent>
             }
-            EntityEvent "entity_event" {
+            EntityEvent ENTITY_EVENT {
                 entity_id i32
                 entity_status i8
             }
-            TeleportEntity "entity_position_sync" {
+            TeleportEntity ENTITY_POSITION_SYNC {
                 entity_id VarInt
                 position Vec3<f64>
                 velocity Vec3<f64>
@@ -760,35 +761,35 @@ state_packets! {
                 pitch f32
                 on_ground bool
             }
-            Explosion "explode" {
+            Explosion EXPLODE {
                 position Vec3<f64>
                 player_delta_velocity Option<Vec3<f64>>
                 explosion_particle Particle
                 explosion_sound IdOrX<SoundEvent>
                 block_particle_alternatives PrefixedArray<BlockParticleAlternative>
             }
-            UnloadChunk "forget_level_chunk" {
+            UnloadChunk FORGET_LEVEL_CHUNK {
                 chunk_x i32
                 chunk_z i32
             }
-            GameEvent "game_event" {
+            GameEvent GAME_EVENT {
                 event u8
                 value f32
             }
-            GameTestHighlightPosition "game_test_highlight_pos" {
+            GameTestHighlightPosition GAME_TEST_HIGHLIGHT_POS {
                 absolute_location Position
                 relative_location Position
             }
-            OpenHorseScreen "horse_screen_open" {
+            OpenHorseScreen MOUNT_SCREEN_OPEN {
                 window_id VarInt
                 inventory_columns_count VarInt
                 entity_id i32
             }
-            HurtAnimation "hurt_animation" {
+            HurtAnimation HURT_ANIMATION {
                 entity_id VarInt
                 yaw f32
             }
-            InitializeWorldBorder "initialize_border" {
+            InitializeWorldBorder INITIALIZE_BORDER {
                 x f64
                 z f64
                 old_diameter f64
@@ -798,10 +799,10 @@ state_packets! {
                 warning_blocks VarInt
                 warning_time VarInt
             }
-            ClientboundKeepAlivePlay "keep_alive" {
+            ClientboundKeepAlivePlay CLIENTBOUND_KEEP_ALIVE_PLAY {
                 keep_alive_id i64
             }
-            ChunkDataAndUpdateLight "level_chunk_with_light" {
+            ChunkDataAndUpdateLight LEVEL_CHUNK_WITH_LIGHT {
                 chunk_x i32
                 chunk_z i32
                 heightmaps PrefixedArray<HeightMap>
@@ -809,13 +810,13 @@ state_packets! {
                 block_entities PrefixedArray<BlockEntity>
                 light LightData
             }
-            WorldEvent "level_event" {
+            WorldEvent LEVEL_EVENT {
                 event i32
                 location Position
                 data i32
                 disable_relative_volume bool
             }
-            Particles "level_particles" {
+            Particles LEVEL_PARTICLES {
                 long_distance bool
                 always_visible bool
                 position Vec3<f64>
@@ -824,12 +825,12 @@ state_packets! {
                 particle_count i32
                 particle Particle
             }
-            UpdateLight "light_update" {
+            UpdateLight LIGHT_UPDATE {
                 chunk_x VarInt
                 chunk_z VarInt
                 data LightData
             }
-            LoginPlay "login" {
+            LoginPlay LOGIN {
                 entity_id i32
                 is_hardcore bool
                 dimension_names PrefixedArray< Identifier>
@@ -849,16 +850,17 @@ state_packets! {
                 death_info Option<DeathInfo>
                 portal_cooldown VarInt
                 sea_level VarInt
+                online_mode bool
                 enforces_secure_chat bool
             }
-            MapData "map_item_data" {
+            MapData MAP_ITEM_DATA {
                 map_id VarInt
                 scale i8
                 locked bool
                 icons Option<PrefixedArray<MapIcon>>
                 color_patch MapColorPatch
             }
-            MerchantOffers "merchant_offers" {
+            MerchantOffers MERCHANT_OFFERS {
                 window_id VarInt
                 trades PrefixedArray<MerchantTrade>
                 villager_level VarInt
@@ -866,61 +868,61 @@ state_packets! {
                 is_regular_villager bool
                 can_restock bool
             }
-            UpdateEntityPosition "move_entity_pos" {
+            UpdateEntityPosition MOVE_ENTITY_POS {
                 entity_id VarInt
                 delta Vec3<i16>
                 on_ground bool
             }
-            UpdateEntityPositionAndRotation "move_entity_pos_rot" {
+            UpdateEntityPositionAndRotation MOVE_ENTITY_POS_ROT {
                 entity_id VarInt
                 delta Vec3<i16>
                 yaw Angle
                 pitch Angle
                 on_ground bool
             }
-            MoveMinecraftAlongTrack "move_minecart_along_track" {
+            MoveMinecraftAlongTrack MOVE_MINECART_ALONG_TRACK {
                 entity_id VarInt
                 steps PrefixedArray<MinecartStep>
             }
-            UpdateEntityRotation "move_entity_rot" {
+            UpdateEntityRotation MOVE_ENTITY_ROT {
                 entity_id VarInt
                 yaw Angle
                 pitch Angle
                 on_ground bool
             }
-            MoveVehicleClientbound "move_vehicle" {
+            MoveVehicleClientbound CLIENTBOUND_MOVE_VEHICLE {
                 pos Vec3<f64>
                 yaw f32
                 pitch f32
             }
-            OpenBook "open_book" {
+            OpenBook OPEN_BOOK {
                 hand Hand
             }
-            OpenScreen "open_screen" {
+            OpenScreen OPEN_SCREEN {
                 window_id VarInt
                 window_type VarInt
                 window_title TextComponent
             }
-            OpenSignEditor "open_sign_editor" {
+            OpenSignEditor OPEN_SIGN_EDITOR {
                 location Position
                 is_front_text bool
             }
-            PingPlay "ping" {
+            PingPlay PING_PLAY {
                 id i32
             }
-            PingResponsePlay "pong_response" {
+            PingResponsePlay PONG_RESPONSE_PLAY {
                 payload i64
             }
-            PlaceGhostRecipe "place_ghost_recipe" {
+            PlaceGhostRecipe PLACE_GHOST_RECIPE {
                 window_id VarInt
                 recipe_display RecipeDisplay
             }
-            PlayerAbilitiesClientbound "player_abilities" {
+            PlayerAbilitiesClientbound CLIENTBOUND_PLAYER_ABILITIES {
                 flags PlayerAbilitiesFlags
                 flying_speed f32
                 fov_modifier f32
             }
-            PlayerChatMessage "player_chat" {
+            PlayerChatMessage PLAYER_CHAT {
                 global_index VarInt
                 sender UUID
                 index VarInt
@@ -935,26 +937,26 @@ state_packets! {
                 sender_name TextComponent
                 target_name Option<TextComponent>
             }
-            EndCombat "player_combat_end" {
+            EndCombat PLAYER_COMBAT_END {
                 duration VarInt
             }
-            EnterCombat "player_combat_enter" {}
-            CombatDeath "player_combat_kill" {
+            EnterCombat PLAYER_COMBAT_ENTER {}
+            CombatDeath PLAYER_COMBAT_KILL {
                 player_id VarInt
                 message TextComponent
             }
-            PlayerInfoRemove "player_info_remove" {
+            PlayerInfoRemove PLAYER_INFO_REMOVE {
                 uuids PrefixedArray<UUID>
             }
-            PlayerInfoUpdate "player_info_update" {
+            PlayerInfoUpdate PLAYER_INFO_UPDATE {
                 actions PlayersActionsData
             }
-            LookAt "player_look_at" {
+            LookAt PLAYER_LOOK_AT {
                 feet_eyes FeetEyes
                 target Vec3<f64>
                 is_entity Option<LookAtEntityInfo>
             }
-            SynchronizePlayerPosition "player_position" {
+            SynchronizePlayerPosition PLAYER_POSITION {
                 teleport_id VarInt
                 pos Vec3<f64>
                 velocity Vec3<f64>
@@ -962,20 +964,20 @@ state_packets! {
                 pitch f32
                 flags TeleportFlags
             }
-            PlayerRotation "player_rotation" {
+            PlayerRotation PLAYER_ROTATION {
                 yaw f32
                 relative_yaw bool
                 pitch f32
                 relative_pitch bool
             }
-            RecipeBookAdd "recipe_book_add" {
+            RecipeBookAdd RECIPE_BOOK_ADD {
                 recipes PrefixedArray<Recipe>
                 replace bool
             }
-            RecipeBookRemove "recipe_book_remove" {
+            RecipeBookRemove RECIPE_BOOK_REMOVE {
                 recipes PrefixedArray<VarInt>
             }
-            RecipeBookSettings "recipe_book_settings" {
+            RecipeBookSettings RECIPE_BOOK_SETTINGS {
                 crafting_recipe_book_open bool
                 crafting_recipe_filter_active bool
                 smelting_recipe_filter_active bool
@@ -985,28 +987,28 @@ state_packets! {
                 smoker_recipe_filter_active bool
                 smoker_recipe_book_open bool
             }
-            RemoveEntities "remove_entities" {
+            RemoveEntities REMOVE_ENTITIES {
                 entity_ids PrefixedArray<VarInt>
             }
-            RemoveEntityEffect "remove_mob_effect" {
+            RemoveEntityEffect REMOVE_MOB_EFFECT {
                 entity_id VarInt
                 effect_id VarInt
             }
-            ResetScore "reset_score" {
+            ResetScore RESET_SCORE {
                 entity_name String
                 objective_name Option<String>
             }
-            RemoveResourcePackPlay "resource_pack_pop" {
+            RemoveResourcePackPlay RESOURCE_PACK_POP_PLAY {
                 uuid Option<UUID>
             }
-            AddResourcePackPlay "resource_pack_push" {
+            AddResourcePackPlay RESOURCE_PACK_PUSH_PLAY {
                 uuid UUID
                 url String
                 hash String
                 forced bool
                 prompt_message Option<TextComponent>
             }
-            Respawn "respawn" {
+            Respawn RESPAWN {
                 dimension_type VarInt
                 dimension_name Identifier
                 hashed_seed i64
@@ -1019,137 +1021,136 @@ state_packets! {
                 sea_level VarInt
                 data_kept DataKept
             }
-            SetHeadRotation "rotate_head" {
+            SetHeadRotation ROTATE_HEAD {
                 entity_id VarInt
                 head_yaw Angle
             }
-            UpdateSectionBlocks "section_blocks_update" {
+            UpdateSectionBlocks SECTION_BLOCKS_UPDATE {
                 chunk_section_position i64
                 blocks PrefixedArray<VarLong>
             }
-            SelectAdvancementsTab "select_advancements_tab" {
+            SelectAdvancementsTab SELECT_ADVANCEMENTS_TAB {
                 identifier Option<Identifier>
             }
-            ServerData "server_data" {
+            ServerData SERVER_DATA {
                 motd TextComponent
                 icon Option<LenPrefixedBytes<VarInt>>
             }
-            SetActionBarText "set_action_bar_text" {
+            SetActionBarText SET_ACTION_BAR_TEXT {
                 action_bar_text TextComponent
             }
-            SetBorderCenter "set_border_center" {
+            SetBorderCenter SET_BORDER_CENTER {
                 x f64
                 z f64
             }
-            SetBorderLerpSize "set_border_lerp_size" {
+            SetBorderLerpSize SET_BORDER_LERP_SIZE {
                 old_diameter f64
                 new_diamter f64
                 speed VarLong
             }
-            SetBorderSize "set_border_size" {
+            SetBorderSize SET_BORDER_SIZE {
                 diameter f64
             }
-            SetBorderWarningDelay "set_border_warning_delay" {
+            SetBorderWarningDelay SET_BORDER_WARNING_DELAY {
                 warning_time VarInt
             }
-            SetBorderWarningDistance "set_border_warning_distance" {
+            SetBorderWarningDistance SET_BORDER_WARNING_DISTANCE {
                 warning_blocks VarInt
             }
-            SetCamera "set_camera" {
+            SetCamera SET_CAMERA {
                 camera_id VarInt
             }
-            SetCenterChunk "set_chunk_cache_center" {
+            SetCenterChunk SET_CHUNK_CACHE_CENTER {
                 chunk_x VarInt
                 chunk_z VarInt
             }
-            SetRenderDistance "set_chunk_cache_radius" {
+            SetRenderDistance SET_CHUNK_CACHE_RADIUS {
                 view_distance VarInt
             }
-            SetCursorItem "set_cursor_item" {
+            SetCursorItem SET_CURSOR_ITEM {
                 carried_item Slot
             }
-            SetDefaultSpawnPosition "set_default_spawn_position" {
+            SetDefaultSpawnPosition SET_DEFAULT_SPAWN_POSITION {
                 dimension_name Identifier
                 location Position
                 yaw f32
                 pitch f32
             }
-            DisplayObjective "set_display_objective" {
+            DisplayObjective SET_DISPLAY_OBJECTIVE {
                 position VarInt
                 score_name String
             }
-            SetEntityMetadata "set_entity_data" {
+            SetEntityMetadata SET_ENTITY_DATA {
                 entity_id VarInt
                 metadata EntityMetadata
             }
-            LinkEntities "set_entity_link" {
+            LinkEntities SET_ENTITY_LINK {
                 attached_entity_id i32
                 holid_entity_id i32
             }
-            SetEntityVelocity "set_entity_motion" {
+            SetEntityVelocity SET_ENTITY_MOTION {
                 entity_id VarInt
                 velocity LpVec3
             }
-            SetEquipment "set_equipment" {
+            SetEquipment SET_EQUIPMENT {
                 entity_id VarInt
                 equipment EntityEquipment
             }
-            SetExperience "set_experience" {
+            SetExperience SET_EXPERIENCE {
                 experience_bar f32
                 level VarInt
                 total_experience VarInt
             }
-            SetHealth "set_health" {
+            SetHealth SET_HEALTH {
                 health f32
                 food VarInt
                 food_saturation f32
             }
-            SetHeldItemClientbound "set_held_slot" {
+            SetHeldItemClientbound SET_HELD_SLOT {
                 slot VarInt
             }
-            UpdateObjectives "set_objective" {
+            UpdateObjectives SET_OBJECTIVE {
                 objective_name String
                 mode ObjectiveMode
             }
-            SetPassengers "set_passengers" {
+            SetPassengers SET_PASSENGERS {
                 entity_id VarInt
                 passengers PrefixedArray<VarInt>
             }
-            SetPlayerInventorySlot "set_player_inventory" {
+            SetPlayerInventorySlot SET_PLAYER_INVENTORY {
                 slot VarInt
                 slot_data Slot
             }
-            UpdateTeams "set_player_team" {
+            UpdateTeams SET_PLAYER_TEAM {
                 team_name String
                 method TeamMethod
             }
-            UpdateScore "set_score" {
+            UpdateScore SET_SCORE {
                 entity_name String
                 objective_name String
                 value VarInt
                 display_name Option<TextComponent>
                 number_format Option<ObjectiveNumberFormat>
             }
-            SetSimulationDistance "set_simulation_distance" {
+            SetSimulationDistance SET_SIMULATION_DISTANCE {
                 simulation_distance VarInt
             }
-            SetSubtitleText "set_subtitle_text" {
+            SetSubtitleText SET_SUBTITLE_TEXT {
                 subtitle_text TextComponent
             }
-            UpdateTime "set_time" {
+            UpdateTime SET_TIME {
                 world_age i64
-                time_of_day i64
-                time_of_day_increasing bool
+                clocks PrefixedArray<Clock>
             }
-            SetTitleText "set_title_text" {
+            SetTitleText SET_TITLE_TEXT {
                 title_text TextComponent
             }
-            SetTitleAnimationTimes "set_titles_animation" {
+            SetTitleAnimationTimes SET_TITLES_ANIMATION {
                 fade_in i32
                 stay i32
                 fade_out i32
             }
-            EntitySoundEffect "sound_entity" {
+            EntitySoundEffect SOUND_ENTITY {
                 sound_event IdOrX<SoundEvent>
                 sound_category VarInt
                 entity_id VarInt
@@ -1157,7 +1158,7 @@ state_packets! {
                 pitch f32
                 seed i64
             }
-            SoundEffect "sound" {
+            SoundEffect SOUND {
                 sound_event IdOrX<SoundEvent>
                 sound_category VarInt
                 effect_position Vec3<i32>
@@ -1165,32 +1166,32 @@ state_packets! {
                 pitch f32
                 seed i64
             }
-            StartConfiguration "start_configuration" {}
-            StopSound "stop_sound" {
+            StartConfiguration START_CONFIGURATION {}
+            StopSound STOP_SOUND {
                 data StopSoundData
             }
-            StoreCookiePlay "store_cookie" {
+            StoreCookiePlay STORE_COOKIE_PLAY {
                 key Identifier
                 payload LenPrefixedBytes<VarInt>
             }
-            SystemChatMessage "system_chat" {
+            SystemChatMessage SYSTEM_CHAT {
                 content TextComponent
                 overlay bool
             }
-            SetTabListHeaderAndFooter "tab_list" {
+            SetTabListHeaderAndFooter TAB_LIST {
                 header TextComponent
                 footer TextComponent
             }
-            TagQueryResponse "tag_query" {
+            TagQueryResponse TAG_QUERY {
                 transaction_id VarInt
                 nbt nbt::Tag
             }
-            PickupItem "take_item_entity" {
+            PickupItem TAKE_ITEM_ENTITY {
                 collceted_entity_id VarInt
                 collector_entity_id VarInt
                 pickup_item_count VarInt
             }
-            SynchronizeVehiclePosition "teleport_entity" {
+            SynchronizeVehiclePosition TELEPORT_ENTITY {
                 entity_id VarInt
                 position Vec3<f64>
                 velocity Vec3<f64>
@@ -1199,65 +1200,65 @@ state_packets! {
                 flags TeleportFlags
                 on_ground bool
             }
-            TestInstanceBlockStatus "test_instance_block_status" {
+            TestInstanceBlockStatus TEST_INSTANCE_BLOCK_STATUS {
                 stauts TextComponent
                 size Option<Vec3<f64>>
             }
-            SetTickingState "ticking_state" {
+            SetTickingState TICKING_STATE {
                 tick_rate f32
                 is_frozen bool
             }
-            StepTick "ticking_step" {
+            StepTick TICKING_STEP {
                 tick_steps VarInt
             }
-            TransferPlay "transfer" {
+            TransferPlay TRANSFER_PLAY {
                 host String
                 port VarInt
             }
-            UpdateAdvancements "update_advancements" {
+            UpdateAdvancements UPDATE_ADVANCEMENTS {
                 reset_clear bool
                 advancement_mappings PrefixedArray<AdvancementMapping>
                 identifiers PrefixedArray<Identifier>
                 progress_mappings PrefixedArray<ProgressMapping>
                 show_advancements bool
             }
-            UpdateAttributes "update_attributes" {
+            UpdateAttributes UPDATE_ATTRIBUTES {
                 entity_id VarInt
                 properties PrefixedArray<EntityProperty>
             }
-            EntityEffect "update_mob_effect" {
+            EntityEffect UPDATE_MOB_EFFECT {
                 entity_id VarInt
                 effect_id VarInt
                 amplifier VarInt
                 duration VarInt
                 flags i8
             }
-            UpdateRecipes "update_recipes" {
+            UpdateRecipes UPDATE_RECIPES {
                 property_sets PrefixedArray<PropertySet>
                 stonecutter_recipes PrefixedArray<StonecutterRecipe>
             }
-            UpdateTagsPlay "update_tags" {
+            UpdateTagsPlay UPDATE_TAGS_PLAY {
                 registry_to_tags_map PrefixedArray<ReigstryToTags>
             }
-            ProjectilePower "projectile_power" {
+            ProjectilePower PROJECTILE_POWER {
                 entity_id VarInt
                 power f64
             }
-            CustomReportDetails "custom_report_details" {
+            CustomReportDetails CUSTOM_REPORT_DETAILS_PLAY {
                 details PrefixedArray<CustomReportDetail>
             }
-            ServerLinks "server_links" {
+            ServerLinks SERVER_LINKS_PLAY {
                 links PrefixedArray<ServerLink>
             }
-            Waypoint "waypoint" {
+            Waypoint WAYPOINT {
                 operation VarInt // TODO: enum
                 identifier XorY<UUID, String>
                 icon_style Identifier
                 color Option<(u8,u8,u8)>
                 waypoint WaypointData
             }
-            ClearDialogPlay "clear_dialog" {}
-            ShowDialogPlay "show_dialog" {
+            ClearDialogPlay CLEAR_DIALOG_PLAY {}
+            ShowDialogPlay SHOW_DIALOG_PLAY {
                 dialog IdOrX<nbt::Tag>
             }
         }
@@ -2093,6 +2094,7 @@ pub enum Particle {
         block_state: VarInt,
     },
     Firefly,
+    SulfurCubeGoo,
 }
 
 #[derive(Debug)]
@@ -2331,11 +2333,18 @@ pub enum RecipeDisplay {
 pub enum SlotDisplay {
     Empty,
     AnyFuel,
-    Item {
-        item_type: VarInt,
+    WithAnyPotion(Box<SlotDisplay>),
+    OnlyWithComponent {
+        base: Box<SlotDisplay>,
+        component_type_id: VarInt,
     },
+    Item(VarInt),
     ItemStack(Slot),
     Tag(Identifier),
+    Dyed {
+        dye: Box<SlotDisplay>,
+        target: Box<SlotDisplay>,
+    },
     SmithingTrim {
         base: Box<SlotDisplay>,
         material: Box<SlotDisplay>,
@@ -2346,7 +2355,7 @@ pub enum SlotDisplay {
         remainder: Box<SlotDisplay>,
     },
     Composite {
-        options: PrefixedArray<Box<SlotDisplay>>,
+        options: PrefixedArray<SlotDisplay>,
     },
 }
 
@@ -2621,49 +2630,50 @@ pub struct EntityMetadatum {
 #[derive(Debug, Serializable)]
 #[enum_info(VarInt)]
 pub enum EntityMetadatumValue {
-    // 0
     Byte(i8),
     VarInt(VarInt),
     VarLong(VarLong),
     Float(f32),
     String(String),
-    // 5
     TextComponent(TextComponent),
     OptionalTextComponent(Option<TextComponent>),
     Slot(Slot),
     Boolean(bool),
     Rotations(f32, f32, f32),
-    // 10
     Position(Position),
     OptionalPosition(Option<Position>),
     Direction(VarInt),
     OptionalLivingEntityReference(Option<UUID>),
     BlockState(VarInt),
-    // 15
-    /// 0 for absent (air is unrepresentable); otherwise, an ID in the block state registry.
     OptionalBlockState(VarInt),
     Particle(Particle),
     Particles(PrefixedArray<Particle>),
     VillagerData(VarInt, VarInt, VarInt),
     OptionalVarInt(IdOrX<()>),
-    // 20
     Pose(VarInt),
     CatVariant(VarInt),
+    CatSoundVariant(VarInt),
     CowVariant(VarInt),
+    CowSoundVariant(VarInt),
     WolfVariant(VarInt),
     WolfSoundVariant(VarInt),
-    // 25
     FrogVariant(VarInt),
     PigVariant(VarInt),
+    PigSoundVariant(VarInt),
     ChickenVariant(VarInt),
+    ChickenSoundVariant(VarInt),
+    ZombieNautilus(VarInt),
     OptionalGlobalPosition(Option<GlobalPosition>),
     PaintingVariant(IdOrX<PaintingVariant>),
-    // 30
     SnifferState(VarInt),
     ArmadilloState(VarInt),
+    CopperGolemState(VarInt),
+    WeatheringCopperState(VarInt),
     Vec3(Vec3<f32>),
     Quaternion(Vec4<f32>),
     ResolvableProfile(ResolvableProfile),
+    /// ENUM: 0 = LEFT 1= RIGHT todo
+    HumanoidArm(VarInt),
 }
 
 #[derive(Debug, Serializable)]
@@ -3270,4 +3280,12 @@ impl Serializable for LpVec3 {
 
         Ok(())
     }
+}
+
+#[derive(Debug, Serializable)]
+pub struct Clock {
+    pub clock_id: VarInt,
+    pub time: VarLong,
+    pub fractional_time: f32,
+    pub rate: f32,
 }

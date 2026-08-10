@@ -1,10 +1,7 @@
-use std::sync::LazyLock;
-
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use serde_json::Value;
 use syn::{
-    Data, DeriveInput, Ident, LitInt, LitStr, Token, Type,
+    Data, DeriveInput, Ident, LitInt, Type,
     parse::{Parse, ParseStream},
     parse_macro_input,
 };
@@ -261,59 +258,12 @@ impl Parse for Bitfields {
     }
 }
 
-// use crate::registry::{BLOCK_STATE_REGISTRY, PACKET_REGISTRY, REGISTRIES};
-static PACKET_REGISTRY: LazyLock<Value> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../resources/packets.json"))
-        .expect("Could not parse packets.json registry.")
-});
-
-#[proc_macro]
-pub fn get_entry(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let PacketLookupInput {
-        state,
-        dir,
-        packet_name,
-    } = parse_macro_input!(input as PacketLookupInput);
-
-    let direction = match dir.as_str() {
-        "Clientbound" => "clientbound",
-        "Serverbound" => "serverbound",
-        _ => panic!("invalid packet direction"),
-    }
-    .to_owned();
-
-    let id: i32 =
-        PACKET_REGISTRY[state][direction]["minecraft:".to_owned() + &packet_name]["protocol_id"]
-            .as_i64()
-            .unwrap()
-            .try_into()
-            .unwrap();
-
-    quote! {#id}.into()
-}
-
-struct PacketLookupInput {
-    state: String,
-    dir: String,
-    packet_name: String,
-}
-
-impl Parse for PacketLookupInput {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let state = input.parse::<Ident>()?.to_string();
-        input.parse::<Token![,]>()?;
-        let dir = input.parse::<Ident>()?.to_string();
-        input.parse::<Token![,]>()?;
-        let packet_name = input.parse::<LitStr>()?.value();
-        Ok(PacketLookupInput {
-            state,
-            dir,
-            packet_name,
-        })
-    }
-}
-
 #[proc_macro]
 pub fn generate_blocks(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
     airi_codegen::blocks::build().into()
+}
+
+#[proc_macro]
+pub fn generate_packets(_: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    airi_codegen::packets::build().into()
 }

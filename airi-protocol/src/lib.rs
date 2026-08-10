@@ -129,7 +129,6 @@ pub enum ReadingError {
     Utf8Error(#[from] FromUtf8Error),
     #[error("serde failure: {0}")]
     Serde(#[from] serde_json::Error),
-    //
     #[error("EOF, Tried to read {0} but No bytes left to consume")]
     CleanEOF(String),
     #[error("incomplete: {0}")]

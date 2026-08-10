@@ -1,7 +1,7 @@
-use std::{error::Error, fs::File};
+use std::{error::Error, fs::File, io::ErrorKind};
 
 use airi_protocol::{
-    AsyncNetworkDecoder, NetworkDecoder, RawPacket,
+    AsyncNetworkDecoder, NetworkDecoder, RawPacket, ReadingError,
     packet::{self, Direction, Packet, State},
     packet_decoder::PacketDecodeError,
 };
@@ -23,13 +23,13 @@ fn deserialize() {
     let _ = decode_sample_data(Direction::Clientbound, &mut aes_key);
 }
 
-#[test]
-fn async_deserialize() {
+#[tokio::test]
+async fn async_deserialize() {
     // first decrypt aes key as the server, then use it in the client
     let mut aes_key = None;
 
-    let _ = decode_sample_data_async(Direction::Serverbound, &mut aes_key);
-    let _ = decode_sample_data_async(Direction::Clientbound, &mut aes_key);
+    let _ = decode_sample_data_async(Direction::Serverbound, &mut aes_key).await;
+    let _ = decode_sample_data_async(Direction::Clientbound, &mut aes_key).await;
 }
 
 fn decode_sample_data(
@@ -55,8 +55,8 @@ fn decode_sample_data(
     loop {
         let res = decoder.get_raw_packet();
         // if we reach eof successfully test passed
-        if let Err(PacketDecodeError::FailedDecompression(ref e)) = res
-            && e == "IO error: failed to fill whole buffer"
+        if let Err(PacketDecodeError::ReadingError(ReadingError::IoError(ref e))) = res
+            && e.kind() == ErrorKind::UnexpectedEof
         {
             return Ok(());
         }
@@ -147,9 +147,7 @@ async fn decode_sample_data_async(
     loop {
         let res = decoder.get_raw_packet().await;
         // if we reach eof successfully test passed
-        if let Err(PacketDecodeError::FailedDecompression(ref e)) = res
-            && e == "IO error: failed to fill whole buffer"
-        {
+        if let Err(PacketDecodeError::ReadingError(ReadingError::CleanEOF(_))) = res {
             return Ok(());
         }
         let RawPacket { id, payload } = res.unwrap();

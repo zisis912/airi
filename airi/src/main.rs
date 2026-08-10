@@ -196,23 +196,23 @@ impl Client {
                 }
             }
             Packet::UpdateTime(p) => {
-                self.time.time_of_day = p.time_of_day;
-                self.time.world_age = p.world_age;
-                self.time.daylight_cycle = p.time_of_day_increasing;
+                // self.time.time_of_day = p.time_of_day;
+                // self.time.world_age = p.world_age;
+                // self.time.daylight_cycle = p.time_of_day_increasing;
             }
             Packet::Waypoint(p) => {
-                match p.operation.0 {
-                    0 | 2 => self.waypoints.insert(
-                        p.identifier.clone(),
-                        Waypoint {
-                            icon_style: p.icon_style.clone(),
-                            color: p.color,
-                            waypoint: p.waypoint.clone(),
-                        },
-                    ),
-                    1 => self.waypoints.remove(&p.identifier),
-                    _ => panic!("invalid waypoint operation"),
-                };
+                // match p.operation.0 {
+                //     0 | 2 => self.waypoints.insert(
+                //         p.identifier.clone(),
+                //         Waypoint {
+                //             icon_style: p.icon_style.clone(),
+                //             color: p.color,
+                //             waypoint: p.waypoint.clone(),
+                //         },
+                //     ),
+                //     1 => self.waypoints.remove(&p.identifier),
+                //     _ => panic!("invalid waypoint operation"),
+                // };
             }
             _ => {}
         }

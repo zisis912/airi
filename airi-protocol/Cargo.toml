@@ -13,6 +13,7 @@ exclude = ["tests"]
 
 [dependencies]
 airi-macros.workspace = true
+airi-data.workspace = true
 byteorder.workspace = true
 serde_json.workspace = true
 hex.workspace = true
@@ -22,5 +23,7 @@ cfb8.workspace = true
 flate2.workspace = true
 thiserror.workspace = true
 take_mut.workspace = true
-tokio = { workspace = true, features = ["io-util","fs"] }
+# i normally always use rt-multi-thread but here i only need ts for testing
+tokio = { workspace = true, features = ["io-util","fs","macros","rt"] }
 async-compression = { workspace = true, features = ["tokio", "zlib"] }
+pollster.workspace = true
