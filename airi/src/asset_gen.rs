@@ -11,8 +11,7 @@ use std::fs::{self, File, OpenOptions};
 
 // const MC_VERSION: &'static str = "1.21.10";
 
-const VERSION_MANIFEST: &'static str =
-    "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+const VERSION_MANIFEST: &str = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
 #[derive(Deserialize)]
 struct VersionManifestResponse {
@@ -23,14 +22,14 @@ struct VersionManifestResponse {
 #[derive(Deserialize)]
 struct LatestVersions {
     release: String,
-    snapshot: String,
+    // snapshot: String,
 }
 
 #[derive(Deserialize)]
 struct VersionEntry {
     id: String,
     url: String,
-    sha1: String,
+    // sha1: String,
 }
 
 #[derive(Deserialize)]
@@ -46,7 +45,7 @@ struct VersionDownloads {
 #[derive(Deserialize)]
 struct VersionDownloadInfo {
     url: String,
-    sha1: String,
+    // sha1: String,
 }
 
 pub fn get_assets() {
@@ -168,7 +167,7 @@ pub fn get_assets() {
 
     File::create(dl_info_path)
         .unwrap()
-        .write(latest_ver.as_bytes())
+        .write_all(latest_ver.as_bytes())
         .unwrap();
 
     info!("finished extracting assets");
@@ -181,6 +180,7 @@ fn download_file(url: &str, path: &Path) -> Result<(), reqwest::Error> {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
+        .truncate(true)
         .open(path)
         .expect("couldnt open file for download");
 

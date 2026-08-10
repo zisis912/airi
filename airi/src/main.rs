@@ -19,7 +19,6 @@ use tokio::{
 use winit::event_loop::EventLoop;
 
 use crate::{
-    asset_gen::get_assets,
     auth::AuthError,
     entity::Entity,
     network_handler::NetworkHandler,
@@ -42,7 +41,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     // tokio is fucking stupid
-    spawn_blocking(|| get_assets()).await.unwrap();
+    spawn_blocking(asset_gen::get_assets).await.unwrap();
 
     let address = format!("{}:{}", HOST, PORT);
     let stream = TcpStream::connect(address).await?;
@@ -72,7 +71,7 @@ impl Client {
         let mut network_handler = NetworkHandler::new(tcp_stream, send_rx, receive_tx, None);
 
         // network thread
-        let _ = tokio::spawn(async move {
+        tokio::spawn(async move {
             network_handler.network_loop().await;
         });
 
@@ -114,7 +113,7 @@ impl Client {
         let mut app = App::new().await.expect("couldnt create window");
 
         // tick thread
-        let _ = tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 select! {
                     packet = self.receiver.recv() => self.handle_packet(&packet.expect("channel closed")).await,
